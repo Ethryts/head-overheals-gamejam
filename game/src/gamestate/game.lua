@@ -5,6 +5,7 @@ local game = {}
 local Player = require("src.player")
 local HC = require("lib.HC")
 local Pickups = require("src.pickups")
+local Knight = require("src.knight")
 
 function game:enter(previous)
   self.ui = UI.new()
@@ -13,10 +14,14 @@ function game:enter(previous)
 
   self.pickups = Pickups.new(1600, 1200) -- TODO replace with real dimensions
   self.pickups:spawn(15)
+
   self.creatures = CreatureSystem.new()
   self.creatures:create("death_slime", UI.width / 2, UI.height / 2, {
     scale = 4,
   })
+  
+  self.knight = Knight.new(UI.width / 2, UI.height / 2)
+  self.knight:setPatrolArea(200, 200, 1400, 1000)
 end
 
 function game:resume(previous)
@@ -32,6 +37,7 @@ function game:update(dt)
   Player.update(game.player, dt)
   self.pickups:checkCollected(self.player.shape)
 
+  self.knight:update(dt, self.creatures)
 
   ---@type CreatureSystemContext
   local context = { knight = self.knight, healer = self.healer }
@@ -51,6 +57,7 @@ function game:draw()
   self.pickups:draw()
   UI.draw(self.ui)
   UI.footer("Esc: pause     F2: preview end screen, F3: debug, F4: debug HUD")
+  self.knight:draw()
   Player.draw(game.player)
 end
 

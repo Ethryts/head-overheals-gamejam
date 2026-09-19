@@ -95,4 +95,20 @@ function CreatureSystem:draw()
   love.graphics.pop()
 end
 
+function CreatureSystem:getAll()
+  return self.creatures
+end
+
+function CreatureSystem:damage(creature, amount)
+  creature.health = creature.health - amount
+  if creature.health <= 0 then
+    for i, c in ipairs(self.creatures) do
+      if c == creature then
+        table.remove(self.creatures, i)
+        break
+      end
+    end
+  end
+end
+
 return CreatureSystem

@@ -6,7 +6,7 @@ local game = {}
 function game:enter(previous)
   self.ui = UI.new()
   self.creatures = CreatureSystem.new()
-  self.creatures:create("death_slime", UI.width / 2 - 32, UI.height / 2, {
+  self.creatures:create("death_slime", UI.width / 2, UI.height / 2, {
     scale = 4,
   })
 end
@@ -22,7 +22,9 @@ function game:update(dt)
     return Gamestate.push(require("gamestate.pause"))
   end
 
-  self.creatures:update(dt)
+  ---@type CreatureSystemContext
+  local context = { knight = self.knight, healer = self.healer }
+  self.creatures:update(dt, context)
   -- When finished: return self:finish({ title = "Finished", message = "..." })
 end
 
@@ -36,7 +38,7 @@ end
 function game:draw()
   self:drawWorld()
   UI.draw(self.ui)
-  UI.footer("Esc: pause     F2: preview end screen")
+  UI.footer("Esc: pause     F2: preview end screen, F3: debug, F4: debug HUD")
 end
 
 function game:finish(result)

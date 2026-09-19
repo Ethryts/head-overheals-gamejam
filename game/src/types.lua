@@ -3,6 +3,9 @@
 -- This file is not required at runtime.
 
 ---@class HumpVector
+---@operator add(HumpVector): HumpVector
+---@operator sub(HumpVector): HumpVector
+---@operator mul(number): HumpVector
 ---@field x number
 ---@field y number
 ---@field clone fun(self: HumpVector): HumpVector
@@ -17,6 +20,7 @@
 ---@field update fun(self: Anim8Animation, dt: number)
 ---@field draw fun(self: Anim8Animation, image: love.Image, x: number, y: number, r?: number, sx?: number, sy?: number, ox?: number, oy?: number, kx?: number, ky?: number)
 ---@field clone fun(self: Anim8Animation): Anim8Animation
+---@field getDimensions fun(self: Anim8Animation): number, number
 ---@field flipH fun(self: Anim8Animation): Anim8Animation
 ---@field flipV fun(self: Anim8Animation): Anim8Animation
 ---@field pause fun(self: Anim8Animation)

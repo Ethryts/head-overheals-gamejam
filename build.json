@@ -1,0 +1,9 @@
+{
+  "title": "Jam Starter",
+  "name": "jam-starter",
+  "memory": 67108864,
+  "size_budget": {
+    "web_zip": { "warn_mb": 20, "fail_mb": 30 },
+    "game_unpacked": { "warn_mb": 50, "fail_mb": 100 }
+  }
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10151d">
+  <title>__GAME_TITLE__</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="player">
+    <canvas id="canvas" width="960" height="540" tabindex="0" aria-label="__GAME_TITLE__ game"></canvas>
+    <div id="overlay">
+      <div>
+        <p class="eyebrow">LÖVE / WEB</p>
+        <h1>__GAME_TITLE__</h1>
+        <p id="status" role="status">Loading game…</p>
+        <button id="start" type="button" hidden>Play</button>
+      </div>
+    </div>
+    <button id="fullscreen" type="button" aria-label="Toggle fullscreen" title="Fullscreen">Fullscreen</button>
+  </main>
+  <noscript>This game needs JavaScript and WebAssembly enabled.</noscript>
+  <!-- Ordering matters: game.js extends Module.preRun before Love starts. -->
+  <script src="player.js"></script>
+  <script src="game.js" onerror="showError('Could not load game data. Reload to try again.')"></script>
+  <script src="love.js" onload="bootGame()" onerror="showError('Could not load the game engine. Reload to try again.')"></script>
+</body>
+</html>

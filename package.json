@@ -1,0 +1,24 @@
+{
+  "name": "love-jam-starter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A genre-neutral LÖVE game jam starter with an itch.io web build.",
+  "license": "MIT",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "check": "python3 tools/build.py check",
+    "love": "python3 tools/build.py love",
+    "build": "python3 tools/build.py web",
+    "web": "python3 tools/build.py web",
+    "size": "python3 tools/build.py size",
+    "dev": "python3 tools/build.py dev",
+    "serve": "python3 tools/build.py serve",
+    "run": "python3 tools/build.py run",
+    "clean": "python3 tools/build.py clean"
+  },
+  "devDependencies": {
+    "love.js": "11.4.1"
+  }
+}

@@ -6,6 +6,7 @@ local Player = require("src.player")
 local HC = require("lib.HC")
 local Pickups = require("src.pickups")
 local Knight = require("src.knight")
+local Spawner = require("systems.spawner")
 
 function game:enter(previous)
   self.ui = UI.new()
@@ -21,7 +22,13 @@ function game:enter(previous)
   })
   
   self.knight = Knight.new(UI.width / 2, UI.height / 2)
-  self.knight:setPatrolArea(200, 200, 1400, 1000)
+  self.knight:setPatrolArea(40, 40, UI.width - 40, UI.height - 40)
+
+  self.spawner = Spawner.new(self.creatures, {
+      interval = 2.5,
+      speed = 60,
+      scale = 2,
+    })
 end
 
 function game:resume(previous)
@@ -38,6 +45,8 @@ function game:update(dt)
   self.pickups:checkCollected(self.player.shape)
 
   self.knight:update(dt, self.creatures)
+
+  self.spawner:update(dt)
 
   ---@type CreatureSystemContext
   local context = { knight = self.knight, healer = self.healer }

@@ -1,9 +1,11 @@
 local Gamestate = require("gamestate.deps").Gamestate
 local UI = require("gamestate.ui")
 local game = {}
+local Player = require("src.player")
 
 function game:enter(previous)
   self.ui = UI.new()
+  self.player = Player.new(400,300)
   -- Starf of the game, initialize.
 end
 
@@ -17,6 +19,8 @@ function game:update(dt)
   if self.ui:Button("Pause", UI.width - 144, 20, 120, 40).hit then
     return Gamestate.push(require("gamestate.pause"))
   end
+  Player.update(game.player, dt)
+
 
   -- When finished: return self:finish({ title = "Finished", message = "..." })
 end
@@ -32,6 +36,7 @@ function game:draw()
   self:drawWorld()
   UI.draw(self.ui)
   UI.footer("Esc: pause     F2: preview end screen")
+  Player.draw(game.player)
 end
 
 function game:finish(result)

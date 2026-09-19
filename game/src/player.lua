@@ -31,9 +31,6 @@ end
 function Player.update(player, dt)
     player.input:update()
 
-    local dx = player.input:get("right") - player.input:get("left")
-    local dy = player.input:get("down")  - player.input:get("up")
-
     local dx, dy = player.input:get("move")
 
     player.x = player.x + dx * player.speed * dt

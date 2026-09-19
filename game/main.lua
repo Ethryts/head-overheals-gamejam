@@ -12,7 +12,7 @@ function love.load()
 		music = MusicSystem:new()
     viewport.init(project.width, project.height)
     viewport.resize(love.graphics.getDimensions())
-		Gamestate.musicHandler = music
+		Gamestate.musicSystem = music
     Gamestate.switch(require("gamestate.menu"))
     print("[jam] ready")
 end

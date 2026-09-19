@@ -1,21 +1,21 @@
 local love = require("love")
-local MusicSystem = {}
-MusicSystem.__index = MusicSystem
 
 ---@class Track
 ---@field name string
 ---@field path string
----@field source love.Source
+---@field source any
 
 ---@class MusicSystem
 ---@field private tracks Track[]
 ---@field private currentTrackIndex integer
+local MusicSystem = {}
+MusicSystem.__index = MusicSystem
 ---@return MusicSystem
 function MusicSystem:new()
 	self.tracks = {
-		{ name = "HighHealth", path = "assets/audio/music/high-health-theme.mp3" },
-		{ name = "LowHealth", path = "assets/audio/music/low-health-theme.mp3" },
-		{ name = "Overhealed", path = "assets/audio/music/overhealed-theme.mp3" },
+		{ name = "HighHealth", path = "assets/audio/music/high-health-theme.mp3", source = nil },
+		{ name = "LowHealth", path = "assets/audio/music/low-health-theme.mp3", source = nil },
+		{ name = "Overhealed", path = "assets/audio/music/overhealed-theme.mp3", source = nil },
 	}
 	self.currentTrackIndex = 1
 	self:startAllTracks()
@@ -31,6 +31,7 @@ function MusicSystem:startAllTracks()
 	end
 end
 
+---@param trackName string
 function MusicSystem:setTrack(trackName)
 	for index, track in ipairs(self.tracks) do
 		if track.name == trackName then
@@ -54,9 +55,9 @@ function MusicSystem:enableCurrentTrack()
 end
 
 function MusicSystem:receiveHealthUpdate(healthPercentage)
-	if healthPercentage > 1.0 then
+	if healthPercentage > 100 then
 		self:setTrack("Overhealed")
-	elseif healthPercentage > 0.5 then
+	elseif healthPercentage > 50 then
 		self:setTrack("HighHealth")
 	else
 		self:setTrack("LowHealth")

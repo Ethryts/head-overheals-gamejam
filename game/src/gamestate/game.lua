@@ -2,11 +2,16 @@ local Gamestate = require("gamestate.deps").Gamestate
 local UI = require("gamestate.ui")
 local game = {}
 local Player = require("src.player")
+local HC = require("lib.HC")
+local Pickups = require("src.pickups")
 
 function game:enter(previous)
   self.ui = UI.new()
   self.player = Player.new(400,300)
-  -- Starf of the game, initialize.
+  self.player.shape = HC.circle(self.player.x, self.player.y, 16)
+
+  self.pickups = Pickups.new(1600, 1200) -- TODO replace with real dimensions
+  self.pickups:spawn(15)
 end
 
 function game:resume(previous)
@@ -20,6 +25,7 @@ function game:update(dt)
     return Gamestate.push(require("gamestate.pause"))
   end
   Player.update(game.player, dt)
+  self.pickups:checkCollected(self.player.shape)
 
 
   -- When finished: return self:finish({ title = "Finished", message = "..." })
@@ -34,6 +40,7 @@ end
 
 function game:draw()
   self:drawWorld()
+  self.pickups:draw()
   UI.draw(self.ui)
   UI.footer("Esc: pause     F2: preview end screen")
   Player.draw(game.player)

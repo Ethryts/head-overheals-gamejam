@@ -33,8 +33,15 @@ function Player.update(player, dt)
 
     local dx, dy = player.input:get("move")
 
-    player.x = player.x + dx * player.speed * dt
-    player.y = player.y + dy * player.speed * dt
+    local moveX = dx * player.speed * dt
+    local moveY = dy * player.speed * dt
+
+    player.x = player.x + moveX
+    player.y = player.y + moveY
+
+    if player.shape then
+      player.shape:move(moveX, moveY)
+    end
 end
 
 function Player.draw(player)

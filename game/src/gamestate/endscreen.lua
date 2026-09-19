@@ -1,0 +1,36 @@
+local Gamestate = require("gamestate.deps").Gamestate
+local UI = require("gamestate.ui")
+local endscreen = {}
+
+function endscreen:enter(previous, result)
+    self.ui = UI.new()
+    self.result = result or {}
+end
+
+function endscreen:update(dt)
+    UI.begin(self.ui)
+    if self.ui:Button("Play again", UI.buttonRect(1)).hit then
+        return Gamestate.switch(require("gamestate.game"))
+    end
+    if self.ui:Button("Main menu", UI.buttonRect(2)).hit then
+        return Gamestate.switch(require("gamestate.menu"))
+    end
+end
+
+function endscreen:draw()
+    UI.background()
+    UI.heading(self.result.title or "Run complete", self.result.message)
+    UI.draw(self.ui)
+    UI.footer("Enter: play again     Esc: main menu")
+end
+
+function endscreen:keypressed(key, scancode, isrepeat)
+    if isrepeat then return end
+    if key == "return" or key == "kpenter" then
+        return Gamestate.switch(require("gamestate.game"))
+    elseif key == "escape" then
+        return Gamestate.switch(require("gamestate.menu"))
+    end
+end
+
+return endscreen

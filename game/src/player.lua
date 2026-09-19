@@ -8,7 +8,6 @@ function Player.new(x, y)
 
     player.x = x or 100
     player.y = y or 100
-
     player.speed = 200
 
     player.input = baton.new({

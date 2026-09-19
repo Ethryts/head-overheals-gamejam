@@ -36,11 +36,14 @@ local behavior = require("behavior")
 ---@field scale? number Defaults to 1.
 ---@field frameDuration? number Seconds per frame; defaults to 0.2.
 ---@field behavior? CreatureBehavior Defaults to behavior.idle.
+---@field attack? Attack defaults to a basic melee attack (1 damage, 1s cooldown, 24 range).
 
 ---@class CreatureSystem
 ---@field private creatures Creature[]
 local CreatureSystem = {}
 CreatureSystem.__index = CreatureSystem
+
+local DEFAULT_ATTACK = { type = "melee", damage = 1, cooldown = 1, range = 24 }
 
 ---@return CreatureSystem
 function CreatureSystem.new()
@@ -66,9 +69,28 @@ function CreatureSystem:create(monsterId, x, y, options)
     animations = clips,
     scale = options.scale or 1,
     behavior = options.behavior or behavior.idle,
+    attack = options.attack or DEFAULT_ATTACK,
+    attackCooldownRemaining = 0,
   }
   self.creatures[#self.creatures + 1] = creature
   return creature
+end
+
+local function tryAttack(creature, dt, context)
+  creature.attackCooldownRemaining = math.max(0, creature.attackCooldownRemaining - dt)
+
+  local target = context.knight
+  if not (creature.attack and target and target.position and type(target.takeDamage) == "function") then
+    return
+  end
+  
+  local range = creature.attack.range or DEFAULT_ATTACK.range
+  local distance = (target.position - creature.position):len()
+
+  if distance <= range and creature.attackCooldownRemaining <= 0 then
+    target:takeDamage(creature.attack.damage)
+    creature.attackCooldownRemaining = creature.attack.cooldown
+  end
 end
 
 ---@param dt number Elapsed seconds.
@@ -79,6 +101,7 @@ function CreatureSystem:update(dt, context)
     creature.behavior.update(creature, dt, context)
     creature.position = creature.position + creature.velocity * dt
     creature.animations.idle:update(dt)
+    tryAttack(creature, dt, context)
   end
 end
 

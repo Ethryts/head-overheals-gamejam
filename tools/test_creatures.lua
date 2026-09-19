@@ -153,6 +153,25 @@ split:update(0.5, target)
 split:update(0.5, target)
 assert(wholeCreature.position == splitCreature.position, "Movement scales with dt")
 
+-- Isolate the creature/debug lifecycle from other game-state subsystems.
+-- Map streaming has its own test_map.lua suite; native smoke tests cover
+-- integration with the real player, pickups, and LuaJIT-only HC library.
+package.preload["lib.HC"] = function()
+  return {circle = function() return {} end}
+end
+package.preload["src.player"] = function()
+  return {new = function(x, y)
+    return {x = x, y = y, animation = {getFeetY = function(_, py) return py + 32 end}}
+  end, update = noop, draw = noop}
+end
+package.preload["src.pickups"] = function()
+  return {new = function() return {spawn = noop, checkCollected = noop, draw = noop} end}
+end
+package.preload["systems.map"] = function()
+  return {new = function() return {
+    update = noop, draw = noop, drawForeground = noop, destroy = noop, resolveMovement = noop,
+  } end}
+end
 dofile("game/main.lua")
 local GS = require("gamestate.deps").Gamestate
 local game = require("gamestate.game")

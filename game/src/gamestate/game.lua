@@ -1,6 +1,7 @@
 local Gamestate = require("gamestate.deps").Gamestate
 local UI = require("gamestate.ui")
 local CreatureSystem = require("systems.creature")
+local MapSystem = require("systems.map")
 local game = {}
 local Player = require("src.player")
 local HC = require("lib.HC")
@@ -8,8 +9,10 @@ local Pickups = require("src.pickups")
 
 function game:enter(previous)
   self.ui = UI.new()
-  self.player = Player.new(400, 300)
+  self.player = Player.new(0, 0)
   self.player.shape = HC.circle(self.player.x, self.player.y, 16)
+  self.map = MapSystem.new({ seed = 1 })
+  self.map:update(self.player.x, self.player.y, UI.width, UI.height)
 
   self.pickups = Pickups.new(1600, 1200) -- TODO replace with real dimensions
   self.pickups:spawn(15)
@@ -29,7 +32,10 @@ function game:update(dt)
   if self.ui:Button("Pause", UI.width - 144, 20, 120, 40).hit then
     return Gamestate.push(require("gamestate.pause"))
   end
+  local oldX, oldY = self.player.x, self.player.y
   Player.update(game.player, dt)
+  self.map:resolveMovement(self.player, oldX, oldY)
+  self.map:update(self.player.x, self.player.y, UI.width, UI.height)
   self.pickups:checkCollected(self.player.shape)
 
 
@@ -42,16 +48,25 @@ end
 function game:drawWorld()
   -- Keep drawing free of updates; pause also calls this method.
   UI.background()
-  UI.heading("Game", "Idle creature preview")
+  love.graphics.push("all")
+  love.graphics.translate(UI.width / 2 - self.player.x, UI.height / 2 - self.player.y)
+  local playerFeetY = self.player.animation:getFeetY(self.player.y)
+  self.map:draw(playerFeetY)
+  self.pickups:draw()
   self.creatures:draw()
+  Player.draw(self.player)
+  self.map:drawForeground(playerFeetY)
+  love.graphics.pop()
 end
 
 function game:draw()
   self:drawWorld()
-  self.pickups:draw()
   UI.draw(self.ui)
   UI.footer("Esc: pause     F2: preview end screen, F3: debug, F4: debug HUD")
-  Player.draw(game.player)
+end
+
+function game:leave()
+  self.map:destroy()
 end
 
 function game:finish(result)

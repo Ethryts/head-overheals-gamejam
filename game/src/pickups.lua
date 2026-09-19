@@ -1,28 +1,49 @@
 local HC = require("lib.HC")
+local project = require("project")
 
-local Pickups = {}
+---@class Pickups
+---@field items table<number, { shape: HCShape, x: number, y: number, lifetime: number }>
+
+
+local Pickups = {
+  items = {}, -- list of { shape = ..., x = ..., y = ... }
+  nextSpawnTime = 0,
+
+}
 Pickups.__index = Pickups
 
 local RADIUS = 8
 
-function Pickups.new(mapWidth, mapHeight)
+---@class item
+---@field shape lib.HCShape
+---@field x number
+---@field y number
+---@field lifetime number
+function Pickups.new(player)
   local self = setmetatable({}, Pickups)
-  self.mapWidth = mapWidth
-  self.mapHeight = mapHeight
-  self.items = {}   -- list of { shape = ..., x = ..., y = ... }
+
+  self.player = player
+  self.items = {} -- list of { shape = ..., x = ..., y = ... }
   return self
 end
 
 function Pickups:spawn(count, margin)
-  margin = margin or 40
+  -- Use logical world dimensions: window scaling doesn't change the visible area.
+  local marginX = margin or project.width * 1.25 / 2
+  local marginY = margin or project.height * 1.25 / 2
   for i = 1, count do
-    local x = math.random(margin, self.mapWidth - margin)
-    local y = math.random(margin, self.mapHeight - margin)
+    local x = self.player.x + (math.random() * 2 - 1) * marginX
+    local y = self.player.y + (math.random() * 2 - 1) * marginY
 
     local shape = HC.circle(x, y, RADIUS)
-    shape.isPickup = true     -- tag so we can identify it in collision checks
+    shape.isPickup = true -- tag so we can identify it in collision checks
 
-    table.insert(self.items, { shape = shape, x = x, y = y })
+    table.insert(self.items, {
+      shape = shape,
+      x = x,
+      y = y,
+      lifetime = 15
+    })
   end
 end
 
@@ -33,6 +54,23 @@ function Pickups:checkCollected(playerShape)
       table.remove(self.items, i)
       self:onCollect(item)
     end
+  end
+end
+
+function Pickups:update(dt)
+  for i = #self.items, 1, -1 do
+    local item = self.items[i]
+    item.lifetime = item.lifetime - dt
+    if item.lifetime <= 0 then
+      table.remove(self.items, i)
+    end
+  end
+
+  if self.nextSpawnTime <= 0 then
+    self:spawn(2)
+    self.nextSpawnTime = math.random(1, 3)
+  else
+    self.nextSpawnTime = self.nextSpawnTime - dt
   end
 end
 

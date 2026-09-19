@@ -14,7 +14,7 @@ function game:enter(previous)
   self.map = MapSystem.new({ seed = 1 })
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
 
-  self.pickups = Pickups.new(1600, 1200) -- TODO replace with real dimensions
+  self.pickups = Pickups.new(self.player) -- TODO replace with real dimensions
   self.pickups:spawn(15)
   self.creatures = CreatureSystem.new()
   self.creatures:create("death_slime", UI.width / 2, UI.height / 2, {
@@ -34,6 +34,7 @@ function game:update(dt)
   end
   local oldX, oldY = self.player.x, self.player.y
   Player.update(game.player, dt)
+  self.pickups:update(dt)
   self.map:resolveMovement(self.player, oldX, oldY)
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
   self.pickups:checkCollected(self.player.shape)

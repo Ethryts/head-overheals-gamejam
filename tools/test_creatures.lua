@@ -160,13 +160,17 @@ package.preload["lib.HC"] = function()
   return {circle = function() return {} end}
 end
 package.preload["src.player"] = function()
-  return {new = function(x, y) return {x = x, y = y} end, update = noop, draw = noop}
+  return {new = function(x, y)
+    return {x = x, y = y, animation = {getFeetY = function(_, py) return py + 32 end}}
+  end, update = noop, draw = noop}
 end
 package.preload["src.pickups"] = function()
   return {new = function() return {spawn = noop, checkCollected = noop, draw = noop} end}
 end
 package.preload["systems.map"] = function()
-  return {new = function() return {update = noop, draw = noop, destroy = noop} end}
+  return {new = function() return {
+    update = noop, draw = noop, drawForeground = noop, destroy = noop, resolveMovement = noop,
+  } end}
 end
 dofile("game/main.lua")
 local GS = require("gamestate.deps").Gamestate

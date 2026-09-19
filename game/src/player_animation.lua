@@ -52,6 +52,13 @@ local function drawLayer(layer, x, y, direction, scale)
     width / 2, height / 2)
 end
 
+---@param y number
+---@return number World-space foot position for depth sorting, independent of head scale.
+function PlayerAnimation:getFeetY(y)
+  local _, height = self.body.animation:getDimensions()
+  return y + height / 2 * self.bodyScale
+end
+
 ---@param x number
 ---@param y number
 ---@param direction? number 1 for right, -1 for left; defaults to right.

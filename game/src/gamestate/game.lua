@@ -32,7 +32,9 @@ function game:update(dt)
   if self.ui:Button("Pause", UI.width - 144, 20, 120, 40).hit then
     return Gamestate.push(require("gamestate.pause"))
   end
+  local oldX, oldY = self.player.x, self.player.y
   Player.update(game.player, dt)
+  self.map:resolveMovement(self.player, oldX, oldY)
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
   self.pickups:checkCollected(self.player.shape)
 
@@ -48,10 +50,12 @@ function game:drawWorld()
   UI.background()
   love.graphics.push("all")
   love.graphics.translate(UI.width / 2 - self.player.x, UI.height / 2 - self.player.y)
-  self.map:draw()
+  local playerFeetY = self.player.animation:getFeetY(self.player.y)
+  self.map:draw(playerFeetY)
   self.pickups:draw()
   self.creatures:draw()
   Player.draw(self.player)
+  self.map:drawForeground(playerFeetY)
   love.graphics.pop()
 end
 

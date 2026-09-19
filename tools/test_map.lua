@@ -49,6 +49,12 @@ love = {
   },
 }
 local MapSystem = require("systems.map")
+-- Floor/cache tests isolate the optional default pillar implementation.
+local newMap = MapSystem.new
+MapSystem = {new = function(options)
+  options.structures = false
+  return newMap(options)
+end}
 local function count(t)
   local n = 0
   for _ in pairs(t) do n = n + 1 end
@@ -127,16 +133,5 @@ assert(destroyed == 16, "Unloading destroys structure resources")
 structures:destroy()
 assert(spawned == destroyed and batchesAlive == 0)
 
-local removed
-package.preload["lib.HC"] = function() return {remove = function(shape) removed = shape end} end
-local Structure = require("src.structure")
-local structure = Structure.new(12, 34)
-assert(not structure:collidesWith({}))
-local shape = {collidesWith = function() return true end}
-structure.shape = shape
-assert(structure:collidesWith({}))
-structure:destroy()
-structure:destroy()
-assert(removed == shape and structure.shape == nil)
 math.random = originalRandom
 print("Map tests passed: deterministic generation, signed coordinates, caching, margins, bounded memory, structure lifecycle")

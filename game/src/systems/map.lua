@@ -60,7 +60,8 @@ end
 ---@field chunkTiles? integer Defaults to 8 tiles per side.
 ---@field loadMargin? number Extra screen widths/heights beyond each edge; defaults to 0.5.
 ---@field unloadMargin? number Retention margin beyond each edge; defaults to 1.
----@field createStructures? fun(context: MapChunkContext): MapStructure[] Optional deterministic factory; defaults to empty chunks.
+---@field structures? boolean Enable default pillars; defaults to true.
+---@field createStructures? fun(context: MapChunkContext): MapStructure[] Overrides default placement; owns its collision response.
 
 ---@param options? MapOptions
 ---@return MapSystem
@@ -80,15 +81,20 @@ function MapSystem.new(options)
     chunkSize = TILE_PIXELS * tileScale * chunkTiles,
     loadMargin = loadMargin,
     unloadMargin = unloadMargin,
-    createStructures = options.createStructures,
+    structureFactory = options.createStructures,
+    structureSystem = not options.createStructures and options.structures ~= false
+      and require("systems.structure").new(tileScale) or nil,
     images = loadImages(),
     chunks = {},
     visible = {},
   }, MapSystem)
 end
 
-
-function MapSystem:createStructures(context: MapChunkContext)
+---@param context MapChunkContext
+---@return MapStructure[]
+function MapSystem:createStructures(context)
+  if self.structureFactory then return self.structureFactory(context) end
+  if self.structureSystem then return self.structureSystem:createChunk(context) end
   return {}
 end
 
@@ -108,9 +114,12 @@ function MapSystem:createChunk(cx, cy)
   end
   for _, batch in pairs(chunk.batches) do batch:flush() end
   if self.createStructures then
-    chunk.structures = self.createStructures({
-      x = cx * self.chunkSize, y = cy * self.chunkSize,
-      size = self.chunkSize, chunkX = cx, chunkY = cy,
+    chunk.structures = self:createStructures({
+      x = cx * self.chunkSize,
+      y = cy * self.chunkSize,
+      size = self.chunkSize,
+      chunkX = cx,
+      chunkY = cy,
       random = love.math.newRandomGenerator(chunkSeed(self.seed, cx, cy, "structures")),
     })
   end
@@ -123,6 +132,7 @@ end
 ---@param viewHeight number Visible world height.
 function MapSystem:update(x, y, viewWidth, viewHeight)
   assert(viewWidth > 0 and viewHeight > 0, "Map view dimensions must be positive")
+  self.viewWidth, self.viewHeight = viewWidth, viewHeight
   local keep = bounds(x, y, viewWidth, viewHeight, self.unloadMargin, self.chunkSize)
   -- Evict first so a teleport doesn't temporarily retain both distant regions.
   for id, chunk in pairs(self.chunks) do
@@ -145,10 +155,22 @@ function MapSystem:update(x, y, viewWidth, viewHeight)
       self.visible[#self.visible + 1] = self.chunks[key(cx, cy)]
     end
   end
+  if self.structureSystem then self.structureSystem:prune() end
+end
+
+-- Player.update has already calculated the desired position. Resolve the path
+-- against default pillars, keeping streamed collision geometry available.
+function MapSystem:resolveMovement(actor, oldX, oldY)
+  if not self.structureSystem or not actor.shape then return end
+  self.structureSystem:resolveMovement(actor, oldX, oldY, function(x, y)
+    self:update(x, y, self.viewWidth, self.viewHeight)
+  end)
 end
 
 -- Caller applies the world/camera transform. No generation occurs during draw.
-function MapSystem:draw()
+-- With splitY, draw only structures behind that anchor; drawForeground draws
+-- the rest after the player, allowing tall pillars to occlude the player.
+function MapSystem:draw(splitY)
   love.graphics.push("all")
   love.graphics.setColor(1, 1, 1, 1)
   for _, chunk in ipairs(self.visible) do
@@ -159,7 +181,19 @@ function MapSystem:draw()
   end
   -- Structures draw after all floor chunks so adjacent floors can't cover them.
   for _, chunk in ipairs(self.visible) do
-    for _, structure in ipairs(chunk.structures) do structure:draw() end
+    for _, structure in ipairs(chunk.structures) do
+      if not splitY or structure.y <= splitY then structure:draw() end
+    end
+  end
+  love.graphics.pop()
+end
+
+function MapSystem:drawForeground(splitY)
+  love.graphics.push("all")
+  for _, chunk in ipairs(self.visible) do
+    for _, structure in ipairs(chunk.structures) do
+      if structure.y > splitY then structure:draw() end
+    end
   end
   love.graphics.pop()
 end
@@ -168,6 +202,7 @@ function MapSystem:destroy()
   for _, chunk in pairs(self.chunks) do releaseChunk(chunk) end
   self.chunks = {}
   self.visible = {}
+  if self.structureSystem then self.structureSystem:prune() end
 end
 
 return MapSystem

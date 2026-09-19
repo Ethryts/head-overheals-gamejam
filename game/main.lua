@@ -3,6 +3,8 @@ love.filesystem.setRequirePath(love.filesystem.getRequirePath() .. ";src/?.lua;s
 local project = require("project")
 local viewport = require("src.viewport")
 local Gamestate = require("gamestate.deps").Gamestate
+local debugState = require("gamestate.debug")
+local debugHud = require("debug.hud")
 
 function love.load()
     viewport.init(project.width, project.height)
@@ -19,6 +21,7 @@ function love.draw()
     love.graphics.clear(0.035, 0.047, 0.063)
     viewport.beginDraw()
     Gamestate.draw()
+    debugHud.draw(Gamestate.current())
     viewport.endDraw()
 end
 
@@ -27,6 +30,15 @@ function love.resize(width, height)
 end
 
 function love.keypressed(key, scancode, isrepeat)
+    if key == "f3" then
+        if isrepeat then return end
+        if Gamestate.current() == debugState then Gamestate.pop()
+        else Gamestate.push(debugState) end
+        return
+    elseif key == "f4" then
+        if not isrepeat then debugHud.toggle() end
+        return
+    end
     Gamestate.keypressed(key, scancode, isrepeat)
 end
 

@@ -3,18 +3,30 @@
 local viewport = {}
 local gameWidth, gameHeight = 960, 540
 local scale, offsetX, offsetY = 1, 0, 0
+local windowWidth, windowHeight
 
 function viewport.init(width, height)
     gameWidth, gameHeight = width, height
+    windowWidth, windowHeight = nil, nil
 end
 
 function viewport.resize(width, height)
+    windowWidth, windowHeight = width, height
     scale = math.max(0.001, math.min(width / gameWidth, height / gameHeight))
     offsetX = (width - gameWidth * scale) / 2
     offsetY = (height - gameHeight * scale) / 2
 end
 
+-- Compositor fullscreen changes can update dimensions without love.resize.
+local function syncSize()
+    local width, height = love.graphics.getDimensions()
+    if width ~= windowWidth or height ~= windowHeight then
+        viewport.resize(width, height)
+    end
+end
+
 function viewport.toGame(x, y)
+    syncSize()
     local gameX = (x - offsetX) / scale
     local gameY = (y - offsetY) / scale
     local inside = gameX >= 0 and gameY >= 0
@@ -23,6 +35,7 @@ function viewport.toGame(x, y)
 end
 
 function viewport.beginDraw()
+    syncSize()
     love.graphics.push("all")
     love.graphics.origin()
     love.graphics.setScissor(

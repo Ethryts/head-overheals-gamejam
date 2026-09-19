@@ -1,0 +1,24 @@
+---@meta
+-- Editor declarations for the subset of vendored APIs used by CreatureSystem.
+-- This file is not required at runtime.
+
+---@class HumpVector
+---@field x number
+---@field y number
+---@field clone fun(self: HumpVector): HumpVector
+---@field unpack fun(self: HumpVector): number, number
+---@field len fun(self: HumpVector): number
+---@field normalized fun(self: HumpVector): HumpVector
+
+---@class Anim8Animation
+---@field timer number
+---@field position integer Current frame (1-based).
+---@field status "playing"|"paused"
+---@field update fun(self: Anim8Animation, dt: number)
+---@field draw fun(self: Anim8Animation, image: love.Image, x: number, y: number, r?: number, sx?: number, sy?: number, ox?: number, oy?: number, kx?: number, ky?: number)
+---@field clone fun(self: Anim8Animation): Anim8Animation
+---@field flipH fun(self: Anim8Animation): Anim8Animation
+---@field flipV fun(self: Anim8Animation): Anim8Animation
+---@field pause fun(self: Anim8Animation)
+---@field resume fun(self: Anim8Animation)
+---@field gotoFrame fun(self: Anim8Animation, frame: integer)

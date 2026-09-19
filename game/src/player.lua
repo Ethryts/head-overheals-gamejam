@@ -13,11 +13,10 @@ function Player.new(x, y)
     bodyScale = PLAYER_SCALE,
     headScale = PLAYER_HEAD_SCALE,
   })
+    player.x = x or 100
+    player.y = y or 100
+    player.speed = 200
 
-  player.x = x or 100
-  player.y = y or 100
-
-  player.speed = 200
   player.direction = 1 -- 1: right, -1: left; preserved while idle.
 
   player.input = baton.new({

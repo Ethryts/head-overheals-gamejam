@@ -3,12 +3,16 @@ love.filesystem.setRequirePath(love.filesystem.getRequirePath() .. ";src/?.lua;s
 local project = require("project")
 local viewport = require("src.viewport")
 local Gamestate = require("gamestate.deps").Gamestate
+local MusicSystem = require("systems.music")
+local music
 local debugState = require("gamestate.debug")
 local debugHud = require("debug.hud")
 
 function love.load()
+		music = MusicSystem:new()
     viewport.init(project.width, project.height)
     viewport.resize(love.graphics.getDimensions())
+		Gamestate.musicHandler = music
     Gamestate.switch(require("gamestate.menu"))
     print("[jam] ready")
 end

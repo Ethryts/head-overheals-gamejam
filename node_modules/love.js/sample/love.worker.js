@@ -1,1 +1,0 @@
-../src/release/love.worker.js

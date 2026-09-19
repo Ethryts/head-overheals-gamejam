@@ -2,9 +2,17 @@ local Gamestate = require("gamestate.deps").Gamestate
 local UI = require("gamestate.ui")
 local CreatureSystem = require("systems.creature")
 local game = {}
+local Player = require("src.player")
+local HC = require("lib.HC")
+local Pickups = require("src.pickups")
 
 function game:enter(previous)
   self.ui = UI.new()
+  self.player = Player.new(400, 300)
+  self.player.shape = HC.circle(self.player.x, self.player.y, 16)
+
+  self.pickups = Pickups.new(1600, 1200) -- TODO replace with real dimensions
+  self.pickups:spawn(15)
   self.creatures = CreatureSystem.new()
   self.creatures:create("death_slime", UI.width / 2, UI.height / 2, {
     scale = 4,
@@ -21,6 +29,9 @@ function game:update(dt)
   if self.ui:Button("Pause", UI.width - 144, 20, 120, 40).hit then
     return Gamestate.push(require("gamestate.pause"))
   end
+  Player.update(game.player, dt)
+  self.pickups:checkCollected(self.player.shape)
+
 
   ---@type CreatureSystemContext
   local context = { knight = self.knight, healer = self.healer }
@@ -37,8 +48,10 @@ end
 
 function game:draw()
   self:drawWorld()
+  self.pickups:draw()
   UI.draw(self.ui)
   UI.footer("Esc: pause     F2: preview end screen, F3: debug, F4: debug HUD")
+  Player.draw(game.player)
 end
 
 function game:finish(result)

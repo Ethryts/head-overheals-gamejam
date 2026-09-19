@@ -7,6 +7,7 @@ local elapsed, pulse, inputCount = 0, 0, 0
 local focused, showStats = true, false
 local volumeBeforeBlur
 local accents = { { 0.51, 0.91, 0.76 }, { 1.0, 0.70, 0.43 } }
+local Player = require("src.player")
 
 local function text(value, x, y, font, color)
     love.graphics.setFont(font)
@@ -24,6 +25,7 @@ function game.load()
     fonts.small = love.graphics.newFont(13)
     fonts.body = love.graphics.newFont(17)
     fonts.title = love.graphics.newFont(50)
+    game.player = Player.new(400, 300)
 end
 
 function game.update(dt)
@@ -32,6 +34,8 @@ function game.update(dt)
     dt = math.min(dt, 0.1)
     elapsed = elapsed + dt
     pulse = math.max(0, pulse - dt * 1.5)
+    Player.update(game.player, dt)
+    
 end
 
 function game.draw()
@@ -94,6 +98,9 @@ function game.draw()
         love.graphics.printf("Paused — click to focus", 0, height / 2 - 12,
             width, "center")
     end
+
+    love.graphics.setColor(1,1,1)
+    Player.draw(game.player)
 end
 
 function game.keypressed(key, scancode, isrepeat)

@@ -1,11 +1,22 @@
 local baton = require("lib.baton")
 local PlayerAnimation = require("src.player_animation")
 
+---@class Player
+---@field x number World-space horizontal position.
+---@field y number World-space vertical position.
+---@field speed number World pixels per second.
+---@field direction 1|-1 Facing direction, preserved while idle.
+---@field animation PlayerAnimation
+---@field input BatonInput
+---@field shape? HCShape Assigned by the game when collision is enabled.
 local Player = {}
 Player.__index = Player
 
 local PLAYER_SCALE = 4
 local PLAYER_HEAD_SCALE = 4
+---@param x? number Defaults to 100.
+---@param y? number Defaults to 100.
+---@return Player
 function Player.new(x, y)
   local player = setmetatable({}, Player)
 
@@ -37,6 +48,8 @@ function Player.new(x, y)
   return player
 end
 
+---@param player Player
+---@param dt number Elapsed seconds.
 function Player.update(player, dt)
   player.input:update()
 
@@ -57,6 +70,7 @@ function Player.update(player, dt)
   player.animation:update(dt)
 end
 
+---@param player Player
 function Player.draw(player)
   player.animation:draw(player.x, player.y, player.direction)
 end

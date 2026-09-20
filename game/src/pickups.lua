@@ -1,8 +1,16 @@
 local HC = require("lib.HC")
 local project = require("project")
 
+---@class Pickup
+---@field shape HCShape
+---@field x number World-space horizontal position.
+---@field y number World-space vertical position.
+---@field lifetime number Seconds remaining before removal.
+
 ---@class Pickups
----@field items table<number, { shape: HCShape, x: number, y: number, lifetime: number }>
+---@field player Player Spawn positions are relative to this player.
+---@field items Pickup[]
+---@field nextSpawnTime number Seconds until the next batch spawns.
 
 
 local Pickups = {
@@ -14,11 +22,8 @@ Pickups.__index = Pickups
 
 local RADIUS = 8
 
----@class item
----@field shape lib.HCShape
----@field x number
----@field y number
----@field lifetime number
+---@param player Player
+---@return Pickups
 function Pickups.new(player)
   local self = setmetatable({}, Pickups)
 
@@ -27,6 +32,8 @@ function Pickups.new(player)
   return self
 end
 
+---@param count integer
+---@param margin? number Half-size of the spawn area in world pixels.
 function Pickups:spawn(count, margin)
   -- Use logical world dimensions: window scaling doesn't change the visible area.
   local marginX = margin or project.width * 1.25 / 2
@@ -47,6 +54,7 @@ function Pickups:spawn(count, margin)
   end
 end
 
+---@param playerShape HCShape
 function Pickups:checkCollected(playerShape)
   for i = #self.items, 1, -1 do
     local item = self.items[i]
@@ -57,6 +65,7 @@ function Pickups:checkCollected(playerShape)
   end
 end
 
+---@param dt number Elapsed seconds.
 function Pickups:update(dt)
   for i = #self.items, 1, -1 do
     local item = self.items[i]
@@ -74,6 +83,7 @@ function Pickups:update(dt)
   end
 end
 
+---@param item Pickup
 function Pickups:onCollect(item)
   print("[pickup] collected at", item.x, item.y)
   -- hook your score/inventory logic here

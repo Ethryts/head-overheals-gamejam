@@ -118,10 +118,13 @@ function CreatureSystem:draw()
   love.graphics.pop()
 end
 
+---@return Creature[]
 function CreatureSystem:getAll()
   return self.creatures
 end
 
+---@param creature Creature
+---@param amount number
 function CreatureSystem:damage(creature, amount)
   creature.health = creature.health - amount
   if creature.health <= 0 then

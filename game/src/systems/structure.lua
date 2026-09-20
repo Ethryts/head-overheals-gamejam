@@ -52,13 +52,16 @@ end
 ---@param oldX number Position before movement.
 ---@param oldY number
 ---@param loadAt fun(x: number, y: number) Loads map geometry along the movement path.
-function StructureSystem:resolveMovement(actor, oldX, oldY, loadAt)
+---@param stopOnCollision? boolean Stop knockback at its first impact; ordinary movement slides.
+---@return boolean collided
+function StructureSystem:resolveMovement(actor, oldX, oldY, loadAt, stopOnCollision)
   local dx, dy = actor.x - oldX, actor.y - oldY
   -- Substeps prevent a long frame from skipping completely over a pillar base.
   local steps = math.max(1, math.ceil(math.max(math.abs(dx), math.abs(dy)) / (2 * self.scale)))
   actor.shape:moveTo(oldX, oldY)
-  for _ = 1, steps do
-    actor.shape:move(dx / steps, dy / steps)
+  local collided = false
+  local function separate()
+    local contact = false
     local x, y = actor.shape:center()
     loadAt(x, y)
     for _ = 1, 4 do
@@ -77,12 +80,26 @@ function StructureSystem:resolveMovement(actor, oldX, oldY, loadAt)
         if hit and (math.abs(pushX) > 1e-7 or math.abs(pushY) > 1e-7) then
           actor.shape:move(pushX, pushY)
           moved = true
+          contact = true
         end
       end
       if not moved then break end
     end
+    return contact
+  end
+  -- Chasing monsters may already be inside a pillar when kicked.
+  if stopOnCollision and separate() then
+    actor.x, actor.y = actor.shape:center()
+    return true
+  end
+  for _ = 1, steps do
+    actor.shape:move(dx / steps, dy / steps)
+    local contact = separate()
+    collided = collided or contact
+    if stopOnCollision and contact then break end
   end
   actor.x, actor.y = actor.shape:center()
+  return collided
 end
 
 return StructureSystem

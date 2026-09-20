@@ -167,6 +167,34 @@ function MapSystem:resolveMovement(actor, oldX, oldY)
   end)
 end
 
+---@param origin HumpVector
+---@param destination HumpVector
+---@param radius number
+---@return HumpVector position
+---@return boolean collided
+function MapSystem:resolveKnockback(origin, destination, radius)
+  if not self.structureSystem then return destination, false end
+  -- Query with an unregistered shape: monsters never enter the pickup or pillar
+  -- spatial hashes, and death/restart requires no additional collider cleanup.
+  local shapes = require("lib.HC.shapes")
+  local actor = {
+    x = destination.x, y = destination.y,
+    shape = shapes.newCircleShape(origin.x, origin.y, radius),
+  }
+  local collided = self.structureSystem:resolveMovement(actor, origin.x, origin.y, function(x, y)
+    -- Load only geometry intersected by the probe. Do not recenter the camera,
+    -- replace visible chunks, or evict the healer's surroundings. Normal map
+    -- updates reclaim any extra chunks after the kick moves out of range.
+    for cy = math.floor((y - radius) / self.chunkSize), math.floor((y + radius) / self.chunkSize) do
+      for cx = math.floor((x - radius) / self.chunkSize), math.floor((x + radius) / self.chunkSize) do
+        local id = key(cx, cy)
+        if not self.chunks[id] then self.chunks[id] = self:createChunk(cx, cy) end
+      end
+    end
+  end, true)
+  return require("lib.hump.vector")(actor.x, actor.y), collided
+end
+
 -- Caller applies the world/camera transform. No generation occurs during draw.
 -- With splitY, draw only structures behind that anchor; drawForeground draws
 -- the rest after the player, allowing tall pillars to occlude the player.

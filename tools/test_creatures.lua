@@ -61,7 +61,8 @@ local a = first:create("death_slime", 10, 20, {health = 10, speed = 40, scale = 
 local b = second:create("death_slime", 30, 40)
 assert(imageLoads == 1 and a.image == b.image)
 assert(a.health == 10 and a.speed == 40 and a.scale == 4)
-assert(b.health == 1 and b.speed == 0 and b.scale == 1 and b.attack == nil)
+assert(b.health == 1 and b.speed == 0 and b.scale == 1)
+assert(b.attack.type == "melee" and b.attack.damage == 1 and b.attack.range == 24)
 assert(a.position ~= b.position and not rawequal(a.velocity, b.velocity))
 a.velocity.x = 8
 a.position.x = 12
@@ -157,15 +158,32 @@ assert(wholeCreature.position == splitCreature.position, "Movement scales with d
 -- Map streaming has its own test_map.lua suite; native smoke tests cover
 -- integration with the real player, pickups, and LuaJIT-only HC library.
 package.preload["lib.HC"] = function()
-  return {circle = function() return {} end}
+  return {circle = function() return {} end, remove = noop}
 end
 package.preload["src.player"] = function()
   return {new = function(x, y)
-    return {x = x, y = y, animation = {getFeetY = function(_, py) return py + 32 end}}
-  end, update = noop, draw = noop}
+    return {x = x, y = y, kick = {drawStatus = noop},
+      animation = {getFeetY = function(_, py) return py + 32 end}}
+  end, update = noop, draw = noop, resolveKick = noop, resume = noop}
 end
 package.preload["src.pickups"] = function()
-  return {new = function() return {spawn = noop, checkCollected = noop, draw = noop} end}
+  return {new = function() return {
+    spawn = noop, checkCollected = noop, draw = noop, update = noop, destroy = noop,
+  } end}
+end
+package.preload["systems.music"] = function()
+  return {new = function() return {receiveHealthUpdate = noop} end}
+end
+package.preload["systems.sound_effects"] = function()
+  return {new = function() return {
+    playSoundEffect = noop, stopSoundEffect = noop, stopAllSoundEffects = noop, playWithLowPass = noop,
+  } end}
+end
+package.preload["src.knight"] = function()
+  return {OVERHEAL_LIMIT = 200, new = function(x, y) return {
+    position = vector(x, y), update = noop, draw = noop, setPatrolRadius = noop,
+    GetHealthPercentage = function() return 100 end,
+  } end}
 end
 package.preload["systems.map"] = function()
   return {new = function() return {
@@ -202,7 +220,7 @@ draws = {}
 love.draw()
 local x = draws[1][2]:getViewport()
 assert(x == 0, "New run starts at frame one")
-game.knight = {position = vector(10, 0)}
+game.knight.position = vector(10, 0)
 game.healer = {position = vector(-10, 0)}
 local follower = game.creatures:create("death_slime", 0, 0, {speed = 5, behavior = behavior.chase})
 love.update(1)

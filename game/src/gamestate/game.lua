@@ -19,6 +19,7 @@ local MapSystem = require("systems.map")
 ---@field pickups Pickups
 ---@field spawner Spawner
 ---@field timer number Seconds since the game started.
+---@field score integer Coins collected during the current run.
 local game = {}
 local Player = require("src.player")
 local HC = require("lib.HC")
@@ -27,12 +28,16 @@ local Knight = require("src.knight")
 local Spawner = require("systems.spawner")
 
 function game:enter(previous)
+  self.score = 0
   self.ui = UI.new()
   self.player = Player.new(0, 0)
   self.player.shape = HC.circle(self.player.x, self.player.y, 16)
   self.map = MapSystem.new({ seed = 1 })
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
+
   self.pickups = Pickups.new(self.player)
+  self.pickups:spawn(15)
+
   self.creatures = CreatureSystem.new()
   self.creatures:create("death_slime", UI.width / 2, UI.height / 2, {
     scale = 4,
@@ -50,7 +55,7 @@ end
 
 function game:resume(previous)
   self.ui = UI.new()
-  -- Resuming the game from pause
+  Player.resume(self.player)
 end
 
 ---@param dt number Elapsed seconds.
@@ -68,7 +73,8 @@ function game:update(dt)
   self.pickups:update(dt)
   self.map:resolveMovement(self.player, oldX, oldY)
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
-  self.pickups:checkCollected(self.player.shape)
+  self.pickups:checkCollected(self.player, self.knight, self)
+  Player.resolveKick(self.player, self.creatures)
 
   self.knight:update(dt, self.creatures, game.player)
 
@@ -86,7 +92,12 @@ function game:update(dt)
 	Gamestate.musicSystem:receiveHealthUpdate(self.knight:GetHealthPercentage())
 
   ---@type CreatureSystemContext
-  local context = { knight = self.knight, healer = self.healer }
+  local context = {
+    knight = self.knight, healer = self.healer,
+    resolveKnockback = function(creature, destination)
+      return self.map:resolveKnockback(creature.position, destination, 6 * creature.scale)
+    end,
+  }
   self.creatures:update(dt, context)
   -- When finished: return self:finish({ title = "Finished", message = "..." })
 end
@@ -109,10 +120,14 @@ end
 function game:draw()
   self:drawWorld()
   UI.draw(self.ui)
+  love.graphics.print("Score: " .. self.score, 24, 20)
+  self.player.kick:drawStatus(24, 48)
   UI.footer("Esc: pause     F2: preview end screen, F3: debug, F4: debug HUD")
 end
 
 function game:leave()
+  self.pickups:destroy()
+  HC.remove(self.player.shape)
   self.map:destroy()
 end
 

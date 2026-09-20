@@ -1,19 +1,24 @@
+local Stats = require("src.stats")
 local baton = require("lib.baton")
 local vector = require("lib.hump.vector")
 local PlayerAnimation = require("src.player_animation")
 local Gamestate = require("gamestate.deps").Gamestate
 local Beam = require("src.beam")
+local Kick = require("src.kick")
 
 ---@class Player
 ---@field x number World-space horizontal position.
 ---@field y number World-space vertical position.
----@field speed number World pixels per second.
+---@field stats ActorStats Movement stats; pickup abilities can modify them.
 ---@field direction 1|-1 Facing direction, preserved while idle.
 ---@field animation PlayerAnimation
 ---@field input BatonInput
 ---@field shape? HCShape Assigned by the game when collision is enabled.
 ---@field allBeams Beam[]
 ---@field currentBeam? Beam
+---@field kick Kick
+---@field kickDirection HumpVector Current aim, movement, or last nonzero direction.
+---@field kickRequested boolean One-frame input, consumed after map collision.
 local Player = {}
 Player.__index = Player
 
@@ -31,13 +36,15 @@ function Player.new(x, y)
   })
 	player.x = x or 100
 	player.y = y or 100
-	player.speed = 200
+	player.stats = Stats.new(200)
 
 	player.allBeams = {}
 	player.currentBeam = nil
 
-	player.speed = 200
   player.direction = 1 -- 1: right, -1: left; preserved while idle.
+  player.kick = Kick.new()
+  player.kickDirection = vector(1, 0)
+  player.kickRequested = false
 
   player.input = baton.new({
     controls = {
@@ -50,6 +57,7 @@ function Player.new(x, y)
 			aimUp = { "key:up", "axis:righty-" },
 			aimDown = { "key:down", "axis:righty+" },
 			healBeam = { "key:space", "axis:triggerright+", "button:rightshoulder" },
+      kick = { "key:f", "axis:triggerleft+" },
     },
     pairs = {
       move = { "left", "right", "up", "down" },
@@ -67,9 +75,16 @@ end
 ---@param dt number Elapsed seconds.
 function Player.update(player, dt)
   player.input:update()
+  player.kick:update(dt)
+  player.kickRequested = player.input:pressed("kick")
 
   local dx, dy = player.input:get("move")
 	local aimX, aimY = player.input:get("aim")
+  if aimX ~= 0 or aimY ~= 0 then
+    player.kickDirection = vector(aimX, aimY):normalized()
+  elseif dx ~= 0 or dy ~= 0 then
+    player.kickDirection = vector(dx, dy):normalized()
+  end
   if aimX ~= 0 then
     player.direction = aimX < 0 and -1 or 1
 	elseif dx ~= 0 then
@@ -97,8 +112,8 @@ function Player.update(player, dt)
 		player.currentBeam = nil
 	end
 
-  local moveX = dx * player.speed * dt
-  local moveY = dy * player.speed * dt
+  local moveX = dx * player.stats.speed * dt
+  local moveY = dy * player.stats.speed * dt
 
 	if moveX ~= 0 and moveY ~= 0 then
 		Gamestate.soundEffectsSystem:playWithLowPass("Step")
@@ -116,12 +131,26 @@ function Player.update(player, dt)
 	end
 end
 
+-- Called by the game after correcting the healer's position against pillars.
+function Player.resolveKick(player, creatures)
+  if not player.kickRequested then return false end
+  player.kickRequested = false
+  return player.kick:tryActivate(player.x, player.y, player.kickDirection, creatures)
+end
+
+function Player.resume(player)
+  -- Synchronize held controls without turning a press during pause into a kick.
+  player.input:update()
+  player.kickRequested = false
+end
+
 ---@param player Player
 function Player.draw(player)
   player.animation:draw(player.x, player.y, player.direction)
 	for _, beam in ipairs(player.allBeams) do
 		beam:draw()
 	end
+  player.kick:draw()
 end
 
 function Player.doesBeamOverlapWithPoint(player, point, radius)

@@ -1,4 +1,5 @@
 local vector = require("lib.hump.vector")
+local BeamVisual = require("src.beam_visual")
 local Gamestate = require("gamestate.deps").Gamestate
 
 local Beam = {}
@@ -28,6 +29,7 @@ function Beam:new(bottomLeft, direction)
 
 		isActive = true,
 		isVisible = true,
+		visual = BeamVisual.new(),
 	}
 
 	Gamestate.soundEffectsSystem:playSoundEffect("HealingStart", true)
@@ -73,8 +75,10 @@ function Beam:releaseBeam(dt)
 end
 
 function Beam:update(dt, newPosition, direction)
+	if not self.isVisible then return end
 	if not self.isActive then
 		self:releaseBeam(dt)
+		self.visual:update(self, dt)
 		return
 	end
 	Gamestate.soundEffectsSystem:playSoundEffect("HealingPassive", false)
@@ -142,76 +146,16 @@ function Beam:update(dt, newPosition, direction)
 		self.bendVelocity * math.pow(damping, dt * 60)
 
 	self.bend = self.bend + self.bendVelocity * dt
+	self.visual:update(self, dt)
 end
 
 function Beam:draw()
-	if not self.isVisible then
-		return
-	end
+  if self.isVisible and self.length > 0 then self.visual:draw() end
+end
 
-	if self.length <= 0 then
-		return
-	end
-
-	local p0 = self.bottomLeft
-	local p2 = self.tip
-
-	local midpoint = (p0 + p2) / 2
-
-	local beamDirection = (p2 - p0):normalized()
-
-	local perpendicular = vector(
-		-beamDirection.y,
-		beamDirection.x
-	)
-
-	local p1 =
-		midpoint + perpendicular * self.bend
-
-	local segments = 20
-	local halfWidth = self.width / 2
-
-	for i = 0, segments - 1 do
-		local t0 = i / segments
-		local t1 = (i + 1) / segments
-
-		local point0 =
-			self:bezier(p0, p1, p2, t0)
-
-		local point1 =
-			self:bezier(p0, p1, p2, t1)
-
-		local segmentDirection =
-			(point1 - point0):normalized()
-
-		local segmentPerpendicular = vector(
-			-segmentDirection.y,
-			segmentDirection.x
-		)
-
-		local left0 =
-			point0 + segmentPerpendicular * halfWidth
-
-		local right0 =
-			point0 - segmentPerpendicular * halfWidth
-
-		local left1 =
-			point1 + segmentPerpendicular * halfWidth
-
-		local right1 =
-			point1 - segmentPerpendicular * halfWidth
-
-		love.graphics.setColor(0.2, 1, 0.2, 0.7)
-
-		love.graphics.polygon(
-			"fill",
-
-			left0.x, left0.y,
-			right0.x, right0.y,
-			right1.x, right1.y,
-			left1.x, left1.y
-		)
-	end
+function Beam:destroy()
+  self.visual:destroy()
+  self.isVisible = false
 end
 
 function Beam:bezier(p0, p1, p2, t)

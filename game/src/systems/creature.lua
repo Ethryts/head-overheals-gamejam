@@ -12,7 +12,7 @@ local attacks = require("attacks")
 ---@field projectiles? ProjectileSystem Ranged attacks spawn into this system.
 ---@field knight? CreatureActor|ProjectileTarget Live knight object; chase follows its position. Nil means no target.
 ---@field healer? CreatureActor Live healer object, available to behaviors; idle/chase do not target it.
----@field resolveKnockback? fun(creature: Creature, destination: HumpVector): HumpVector, boolean Returns corrected position and whether a structure was hit.
+---@field resolveKnockback? fun(creature: Creature, destination: HumpVector): HumpVector, boolean, StructureImpact? Returns corrected position, collision flag and optional surface contact.
 
 ---@class CreatureKnockback
 ---@field direction HumpVector
@@ -131,7 +131,16 @@ local function updateKnockback(creature, dt, context)
   if not kick.blocked and consumed > 0 then
     local destination = creature.position + kick.direction * travel
     if context.resolveKnockback then
-      destination, kick.blocked = context.resolveKnockback(creature, destination)
+      local impact
+      destination, kick.blocked, impact = context.resolveKnockback(creature, destination)
+      if kick.blocked and context.fx then
+        local x = impact and impact.x or destination.x + kick.direction.x * 6 * creature.scale
+        local y = impact and impact.y or destination.y + kick.direction.y * 6 * creature.scale
+        local nx = impact and impact.normalX or -kick.direction.x
+        local ny = impact and impact.normalY or -kick.direction.y
+        context.fx:emit("impact", x, y, {angle = math.atan2(ny, nx), depth = destination.y + 8 * creature.scale})
+        context.fx:emit("dust", destination.x, destination.y + 8 * creature.scale)
+      end
     end
     creature.position = destination
   end

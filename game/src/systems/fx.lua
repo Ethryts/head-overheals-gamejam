@@ -12,6 +12,7 @@ end
 
 ---@class FxOptions
 ---@field angle? number Emission direction in radians.
+---@field radius? number Outer reach of a swing in world pixels; defaults to 60.
 ---@field color? number[] RGB tint for pickup flecks.
 ---@field depth? number World foot/depth anchor; defaults to y, stays fixed as particles rise.
 
@@ -48,6 +49,8 @@ end
 ---@field depth number
 ---@field shape string
 ---@field phase number
+---@field angle number
+---@field radius number
 ---@field color? number[]
 
 ---@class FxSystem
@@ -74,7 +77,7 @@ end
 local function copyOptions(options)
   options = options or {}
   local color = options.color
-  return {angle = options.angle, depth = options.depth,
+  return {angle = options.angle, radius = options.radius, depth = options.depth,
     color = color and {color[1], color[2], color[3]} or nil}
 end
 
@@ -110,12 +113,12 @@ local function spawn(self, preset, x, y, options, age)
     vx = math.cos(angle) * speed, vy = math.sin(angle) * speed,
     age = 0, lifetime = lifetime, depth = options.depth or y,
     shape = preset.shapes[self.random:random(1, #preset.shapes)],
-    phase = sample(self, 0, math.pi * 2), color = options.color}
+    phase = sample(self, 0, math.pi * 2), color = options.color, angle = angle, radius = options.radius or 60}
   advance(p, age)
   self.particles[#self.particles + 1] = p
 end
 
----@param name string Preset ID: sparks, dust, embers, healing, pickup.
+---@param name string Preset ID: sparks, impact, swing, dust, embers, healing, pickup.
 ---@param x number World position.
 ---@param y number
 ---@param options? FxOptions
@@ -167,6 +170,29 @@ function FxSystem:update(dt)
   end
 end
 
+-- A short, opaque ribbon sweeps around the knight's existing circular attack.
+-- The low-resolution world canvas gives the silhouette its pixel edges.
+local function drawSlash(p, progress)
+  local head = p.angle - math.pi / 2 + progress * math.pi * 2
+  local tail = head - math.pi * 0.8
+  local radius = p.radius * (0.72 + 0.28 * progress)
+  local thickness = 8 * (1 - progress) + 2
+  local segments = 18
+  for i = 0, segments - 1 do
+    local startProgress, endProgress = i / segments, (i + 1) / segments
+    local startAngle = tail + (head - tail) * startProgress
+    local endAngle = tail + (head - tail) * endProgress
+    local startInner = radius - thickness * startProgress
+    local endInner = radius - thickness * endProgress
+    -- Fill one convex strip at a time; taper the ribbon toward its tail.
+    love.graphics.polygon("fill",
+      p.x + math.cos(startAngle) * radius, p.y + math.sin(startAngle) * radius,
+      p.x + math.cos(endAngle) * radius, p.y + math.sin(endAngle) * radius,
+      p.x + math.cos(endAngle) * endInner, p.y + math.sin(endAngle) * endInner,
+      p.x + math.cos(startAngle) * startInner, p.y + math.sin(startAngle) * startInner)
+  end
+end
+
 ---@param particle FxParticle
 function FxSystem:drawParticle(particle)
   loadAtlas()
@@ -182,6 +208,10 @@ function FxSystem:drawParticle(particle)
   end
   if preset.flicker and math.floor(p.age * 16 + p.phase) % 7 == 0 then
     love.graphics.setColor(1, 0.85, 0.45, 1)
+  end
+  if p.shape == "slash" then
+    drawSlash(p, progress)
+    return
   end
   local shape = preset.shrink and progress > 0.65 and "dot" or p.shape
   local drift = preset.drift and math.sin(p.age * 5 + p.phase) * preset.drift or 0

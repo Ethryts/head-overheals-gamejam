@@ -19,6 +19,18 @@
 
 ---@type table<string, FxPreset>
 return {
+  impact = {
+    count = 22, rate = 12, lifetime = {0.22, 0.45}, speed = {160, 270},
+    angle = math.pi, spread = 2.2, acceleration = {0, 130}, drag = 5,
+    spreadX = 2, spreadY = 2, layer = "air", shapes = {"line", "line", "cluster", "sparkle", "dot"},
+    colors = {{1, 1, 0.92}, {1, 0.8, 0.4}, {0.62, 0.37, 0.15}}, shrink = true,
+  },
+  swing = {
+    count = 1, rate = 3, lifetime = {0.2, 0.2}, speed = {0, 0},
+    angle = 0, spread = 0, acceleration = {0, 0}, drag = 0,
+    spreadX = 0, spreadY = 0, layer = "air", shapes = {"slash"},
+    colors = {{1, 1, 0.95}, {0.8, 0.92, 1}, {0.45, 0.65, 0.8}},
+  },
   sparks = {
     count = 12, rate = 24, lifetime = {0.18, 0.34}, speed = {140, 210},
     angle = 0, spread = 1.1, acceleration = {0, 55}, drag = 8,

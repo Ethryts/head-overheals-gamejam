@@ -172,6 +172,7 @@ end
 ---@param radius number
 ---@return HumpVector position
 ---@return boolean collided
+---@return StructureImpact? impact
 function MapSystem:resolveKnockback(origin, destination, radius)
   if not self.structureSystem then return destination, false end
   -- Query with an unregistered shape: monsters never enter the pickup or pillar
@@ -181,7 +182,7 @@ function MapSystem:resolveKnockback(origin, destination, radius)
     x = destination.x, y = destination.y,
     shape = shapes.newCircleShape(origin.x, origin.y, radius),
   }
-  local collided = self.structureSystem:resolveMovement(actor, origin.x, origin.y, function(x, y)
+  local collided, impact = self.structureSystem:resolveMovement(actor, origin.x, origin.y, function(x, y)
     -- Load only geometry intersected by the probe. Do not recenter the camera,
     -- replace visible chunks, or evict the healer's surroundings. Normal map
     -- updates reclaim any extra chunks after the kick moves out of range.
@@ -192,7 +193,7 @@ function MapSystem:resolveKnockback(origin, destination, radius)
       end
     end
   end, true)
-  return require("lib.hump.vector")(actor.x, actor.y), collided
+  return require("lib.hump.vector")(actor.x, actor.y), collided, impact
 end
 
 ---@param origin HumpVector

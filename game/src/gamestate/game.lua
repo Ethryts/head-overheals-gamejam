@@ -193,6 +193,7 @@ function game:draw()
 end
 
 function game:leave()
+  for _, beam in ipairs(self.player.allBeams or {}) do beam:destroy() end
   self.fx:destroy()
   self.worldCanvas:destroy()
   self.healingEmitter = nil

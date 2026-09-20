@@ -142,6 +142,15 @@ function Knight:update(dt, creatureSystem, player)
   local isAttacking = #targets > 0
 
   if isAttacking and self.attackCooldown <= 0 then
+    local offset = targets[1].position - self.position
+    if offset.x ~= 0 then self.direction = offset.x < 0 and -1 or 1 end
+    if creatureSystem.fx then
+      creatureSystem.fx:emit("swing", self.position.x, self.position.y, {
+        angle = math.atan2(offset.y, offset.x), radius = ATTACK_RANGE,
+        depth = self.animation:getFeetY(self.position.y),
+      })
+    end
+    Gamestate.soundEffectsSystem:playSoundEffect("Swing")
     for _, target in ipairs(targets) do
       creatureSystem:damage(target, 1, self.position)
     end
@@ -181,11 +190,6 @@ end
 function Knight:draw()
   self.animation:draw(self.position.x, self.position.y, self.direction)
 
-  if self.state == "attacking" then
-		Gamestate.soundEffectsSystem:playSoundEffect("Swing")
-    love.graphics.setColor(1, 0.3, 0.3, 0.5)
-    love.graphics.circle("line", self.position.x, self.position.y, ATTACK_RANGE)
-  end
 
 	local overhealLimit = self.stats.maxHealth * OVERHEAL_RATIO
 

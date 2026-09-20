@@ -126,9 +126,14 @@ function Player.update(player, dt)
     player.shape:move(moveX, moveY)
   end
   player.animation:update(dt)
-	for _, beam in ipairs(player.allBeams) do
-		beam:update(dt, playerPositionVector, directionVector)
-	end
+  for i = #player.allBeams, 1, -1 do
+    local beam = player.allBeams[i]
+    beam:update(dt, playerPositionVector, directionVector)
+    if not beam.isVisible then
+      beam:destroy()
+      table.remove(player.allBeams, i)
+    end
+  end
 end
 
 -- Called by the game after correcting the healer's position against pillars.
@@ -150,10 +155,13 @@ end
 
 ---@param player Player
 function Player.draw(player)
+  for _, beam in ipairs(player.allBeams) do
+    if beam.direction.y < 0 then beam:draw() end
+  end
   player.animation:draw(player.x, player.y, player.direction)
-	for _, beam in ipairs(player.allBeams) do
-		beam:draw()
-	end
+  for _, beam in ipairs(player.allBeams) do
+    if beam.direction.y >= 0 then beam:draw() end
+  end
   player.kick:draw()
 end
 

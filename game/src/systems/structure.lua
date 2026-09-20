@@ -1,6 +1,12 @@
 local HC = require("lib.HC")
 local Structure = require("src.structure")
 
+---@class StructureImpact
+---@field x number World-space contact point on the pillar footprint.
+---@field y number
+---@field normalX number Outward unit normal, pointing away from the pillar.
+---@field normalY number
+
 ---@class StructureSystem
 ---@field world table Private HC world containing only this map's pillars.
 ---@field scale number
@@ -54,12 +60,14 @@ end
 ---@param loadAt fun(x: number, y: number) Loads map geometry along the movement path.
 ---@param stopOnCollision? boolean Stop knockback at its first impact; ordinary movement slides.
 ---@return boolean collided
+---@return StructureImpact? impact First contact point and outward normal.
 function StructureSystem:resolveMovement(actor, oldX, oldY, loadAt, stopOnCollision)
   local dx, dy = actor.x - oldX, actor.y - oldY
   -- Substeps prevent a long frame from skipping completely over a pillar base.
   local steps = math.max(1, math.ceil(math.max(math.abs(dx), math.abs(dy)) / (2 * self.scale)))
   actor.shape:moveTo(oldX, oldY)
   local collided = false
+  local impact
   local function separate()
     local contact = false
     local x, y = actor.shape:center()
@@ -79,6 +87,13 @@ function StructureSystem:resolveMovement(actor, oldX, oldY, loadAt, stopOnCollis
         local hit, pushX, pushY = actor.shape:collidesWith(shape)
         if hit and (math.abs(pushX) > 1e-7 or math.abs(pushY) > 1e-7) then
           actor.shape:move(pushX, pushY)
+          if not impact then
+            local cx, cy = actor.shape:center()
+            local left, top, right, bottom = shape:bbox()
+            local length = math.sqrt(pushX * pushX + pushY * pushY)
+            impact = {x = math.max(left, math.min(right, cx)), y = math.max(top, math.min(bottom, cy)),
+              normalX = pushX / length, normalY = pushY / length}
+          end
           moved = true
           contact = true
         end
@@ -90,7 +105,7 @@ function StructureSystem:resolveMovement(actor, oldX, oldY, loadAt, stopOnCollis
   -- Chasing monsters may already be inside a pillar when kicked.
   if stopOnCollision and separate() then
     actor.x, actor.y = actor.shape:center()
-    return true
+    return true, impact
   end
   for _ = 1, steps do
     actor.shape:move(dx / steps, dy / steps)
@@ -99,7 +114,7 @@ function StructureSystem:resolveMovement(actor, oldX, oldY, loadAt, stopOnCollis
     if stopOnCollision and contact then break end
   end
   actor.x, actor.y = actor.shape:center()
-  return collided
+  return collided, impact
 end
 
 -- Slab intersection against a pillar footprint expanded by shot radius.

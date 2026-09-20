@@ -15,7 +15,7 @@ fx:update(dt)
 
 Presets in `presets.lua` define count/rate, lifetime, speed, direction/spread,
 acceleration, drag, spawn spread, shape, and stepped opaque colors. Available
-IDs are `sparks`, `dust`, `embers`, `healing`, and `pickup`. The 40x8 shared texture
+IDs are `sparks`, `dust`, `embers`, `healing`, `pickup`, `impact`, and `swing`. The 40x8 shared texture
 in `assets/images/fx/particles.png` contains original white pixel masks: dot,
 line, cluster, diamond, and sparkle. No external artwork is required.
 
@@ -48,3 +48,21 @@ maxEmitters = ..., seed = ...})`.
 
 Run `luajit tools/test_fx.lua` for timing, lifecycle, gameplay hooks, and depth
 ordering checks. Native rendering also requires a visual LÖVE check.
+
+## Combat feedback
+
+`impact` produces a bright directional burst with heavier flecks. Knockback
+collisions emit it once at the pillar contact point, facing the outward surface
+normal, plus dust at the creature's feet. The optional third return from
+`MapSystem:resolveKnockback` carries this contact information; existing callers
+using position and collision status still work.
+
+`swing` is a 0.2-second opaque slash ribbon, drawn procedurally on the same pixel
+canvas. It sweeps around the knight to match his existing circular damage area.
+`angle` sets its orientation and `radius` its outer reach (60 by default). The
+knight emits one slash and plays one swing sound per attack, even when hitting
+several targets. Neither the sound nor effect is triggered by drawing. The old
+persistent attack-radius debug circle has been removed.
+
+Both effects are available in **F3 → Particle FX**. No additional sprites are
+needed; a vendored slash animation could replace the ribbon later.

@@ -109,6 +109,70 @@ queue:add(20,function() order[#order+1]='front effect' end)
 queue:add(30,function() order[#order+1]='pillar' end)
 queue:draw(); assert(table.concat(order,',')=='rear effect,actor,front effect,pillar')
 
+-- Pillar contact supplies a surface point/normal and emits once per collision.
+local vector=require('lib.hump.vector')
+local Map=require('systems.map')
+local Structure=require('src.structure')
+local Creatures=require('systems.creature')
+local collisionMap=Map.new()
+collisionMap.createStructures=function() return {} end
+collisionMap:update(0,0,960,540)
+local pillar=Structure.new('pillar_round',100,0,4,collisionMap.structureSystem.world)
+table.insert(collisionMap.chunks['0:0'].structures,pillar)
+local contactFx=Fx.new()
+local impactCount,dustCount=0,0
+local baseEmit=contactFx.emit
+contactFx.emit=function(self,name,x,y,options)
+  if name=='impact' then
+    impactCount=impactCount+1
+    near(x,80); near(y,-10); near(math.cos(options.angle),-1)
+  elseif name=='dust' then dustCount=dustCount+1 end
+  baseEmit(self,name,x,y,options)
+end
+local collisionCreatures=Creatures.new(contactFx)
+local monster=collisionCreatures:create('death_slime',40,-10,{scale=2})
+local collisionContext={fx=contactFx,resolveKnockback=function(c,destination)
+  return collisionMap:resolveKnockback(c.position,destination,6*c.scale)
+end}
+collisionCreatures:applyKnockback(monster,vector(1,0),180,0.25)
+collisionCreatures:update(0.08,collisionContext)
+assert(impactCount==1 and dustCount==1 and monster.knockback.blocked)
+collisionCreatures:update(0.01,collisionContext)
+assert(impactCount==1 and dustCount==1,'Blocked frames must not repeat wall impacts')
+local clear=collisionCreatures:create('death_slime',0,100,{scale=2})
+collisionCreatures:applyKnockback(clear,vector(-1,0),30,0.25)
+collisionCreatures:update(0.01,collisionContext); assert(impactCount==1)
+collisionMap:destroy()
+
+-- A swing and its sound belong to the attack event, never rendering or target count.
+local Knight=require('src.knight')
+local Player=require('src.player')
+local swordFx=Fx.new()
+local swings=0
+swordFx.emit=function(self,name,x,y,options)
+  if name=='swing' then swings=swings+1; near(options.radius,60) end
+  baseEmit(self,name,x,y,options)
+end
+local swordCreatures=Creatures.new(swordFx)
+swordCreatures:create('death_slime',20,0,{health=10})
+swordCreatures:create('death_slime',-20,0,{health=10})
+local swordsman=Knight.new(0,0)
+local healer=Player.new(500,500)
+local sounds=require('gamestate.deps').Gamestate.soundEffectsSystem
+local oldSound=sounds.playSoundEffect
+local swingSounds=0
+sounds.playSoundEffect=function(self,name,...)
+  if name=='Swing' then swingSounds=swingSounds+1 end
+  return oldSound(self,name,...)
+end
+swordsman:update(0,swordCreatures,healer)
+assert(swings==1 and swingSounds==1)
+for _=1,5 do swordsman:draw() end
+assert(swings==1 and swingSounds==1,'Draw/pause never repeats the swing or sound')
+swordsman:update(0.79,swordCreatures,healer); assert(swings==1)
+swordsman:update(0.02,swordCreatures,healer); assert(swings==2 and swingSounds==2)
+sounds.playSoundEffect=oldSound
+
 -- Real gameplay FX hooks and lifecycle.
 dofile('game/main.lua')
 local GS=require('gamestate.deps').Gamestate

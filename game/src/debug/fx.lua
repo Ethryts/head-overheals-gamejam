@@ -4,7 +4,7 @@ local WorldCanvas = require("src.world_canvas")
 local PlayerAnimation = require("src.player_animation")
 local DrawQueue = require("fx.draw_queue")
 
-local names = {"sparks", "dust", "embers", "healing", "pickup"}
+local names = {"sparks", "dust", "embers", "healing", "pickup", "impact", "swing"}
 local test = {label = "Particle FX", footer = "Click: burst     Toggle emitter: start / stop     Esc: menu     F3: exit"}
 test.__index = test
 function test.new()
@@ -14,7 +14,7 @@ end
 function test:update(dt)
   UI.begin(self.ui)
   for i, name in ipairs(names) do
-    if self.ui:Button(name, 24 + (i - 1) * 132, 70, 124, 36).hit then self.selected = name end
+    if self.ui:Button(name, 24 + ((i - 1) % 4) * 132, 70 + math.floor((i - 1) / 4) * 42, 124, 36).hit then self.selected = name end
   end
   if self.ui:Button("Toggle emitter", 704, 70, 220, 36).hit then
     if self.emitter then self.emitter:stop(); self.emitter = nil
@@ -24,7 +24,7 @@ function test:update(dt)
   self.fx:update(dt)
 end
 function test:mousepressed(x, y, button)
-  if button == 1 and y > 120 and y < UI.height - 60 then
+  if button == 1 and y > 158 and y < UI.height - 60 then
     self.fx:emit(self.selected, x, y, {angle = -math.pi / 3, color = {0.4, 0.8, 1}})
   end
 end
@@ -41,7 +41,7 @@ function test:draw()
     queue:draw()
   end)
   UI.draw(self.ui)
-  love.graphics.print("FX: " .. self.selected .. "   Particles: " .. #self.fx.particles, 24, 120)
+  love.graphics.print("FX: " .. self.selected .. "   Particles: " .. #self.fx.particles, 24, 158)
 end
 function test:destroy()
   self.fx:destroy()

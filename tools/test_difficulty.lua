@@ -4,7 +4,7 @@ love = {graphics = {getDimensions = function() return 960, 540 end}}
 local Spawner = require("systems.spawner")
 local schedule = require("src.difficulty")
 local spawned = {}
-local creatures = {create = function(_, id, x, y, options)
+local creatures = {getAll = function() return spawned end, create = function(_, id, x, y, options)
   local creature = {id = id, x = x, y = y, options = options}
   spawned[#spawned + 1] = creature
   return creature
@@ -55,9 +55,26 @@ assert(spawner.stage == 4 and spawner.interval == 1.5 and spawned[#spawned].id =
 roll = 0.94
 spawner:spawnOne(100, 200)
 assert(spawned[#spawned].id == "ochre_jelly", "Ogres remain below 6%")
+spawner:update(29.99, 100, 200)
+assert(spawner.stage == 4, "No two-headed ogres before 90 seconds")
+roll = 0.99
+spawner:update(0.01, 100, 200)
+assert(spawner.stage == 5)
+spawner:spawnOne(100, 200)
+assert(spawned[#spawned].id == "humongous_ettin" and not spawned[#spawned].options)
+roll = 0.97
+spawner:spawnOne(100, 200)
+assert(spawned[#spawned].id ~= "humongous_ettin", "Two-headed ogres remain below 3%")
 local count = #spawned
+local events = 0
+local spawnOne = spawner.spawnOne
+spawner.spawnOne = function(self, ...)
+  events = events + 1
+  return spawnOne(self, ...)
+end
 spawner:update(10000, 100, 200)
-assert(spawner.stage == 4 and #spawned == count + 1, "Final stage persists without catch-up floods")
+assert(spawner.stage == 6 and events == 1 and #spawned > count and #spawned <= count + 8,
+  "Long frames produce at most one event, including swarms")
 assert(spawned[1].id == "death_slime", "Existing creatures are untouched")
 local restarted = Spawner.new(creatures, {difficulty = schedule})
 assert(restarted.stage == 1 and restarted.elapsed == 0 and #restarted.pool == 1)

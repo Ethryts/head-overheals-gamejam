@@ -19,6 +19,12 @@
 
 ---@type table<string, FxPreset>
 return {
+  dodge = {
+    count = 10, rate = 12, lifetime = {0.16, 0.3}, speed = {55, 110},
+    angle = 0, spread = 1.3, acceleration = {0, -8}, drag = 6,
+    spreadX = 4, spreadY = 4, layer = "air", shapes = {"line", "dot", "diamond"},
+    colors = {{0.85, 0.9, 1}, {0.55, 0.45, 0.95}, {0.25, 0.2, 0.5}}, shrink = true,
+  },
   menu_embers = {
     count = 1, rate = 3, lifetime = {1, 2}, speed = {7, 12},
     angle = -math.pi/2, spread = 0.4, acceleration = {0, -1}, drag = 0.5,

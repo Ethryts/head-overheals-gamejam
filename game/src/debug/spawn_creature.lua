@@ -4,11 +4,16 @@ local behavior = require("behavior")
 local vector = require("lib.hump.vector")
 local project = require("project")
 local UI = require("gamestate.ui")
+local viewport = require("src.viewport")
+local Fx = require("systems.fx")
 
 local options = {
   { id = "death_slime", label = "Death Slime" },
   { id = "bloodshot_eye", label = "Bloodshot Eye" },
   { id = "ochre_jelly", label = "Ochre Jelly" },
+  { id = "ocular_watcher", label = "Ocular Watcher" },
+  { id = "brawny_ogre", label = "Brawny Ogre" },
+  { id = "humongous_ettin", label = "Two-headed Ogre" },
 }
 local dropdown = { x = project.width - 280, y = 20, width = 260, height = 36, spacing = 40 }
 
@@ -47,13 +52,31 @@ function test:update(dt)
       end
     end
   end
+  if self.selectedCreature.id == "ocular_watcher" and not self.fx then
+    self.fx = Fx.new()
+    self.context.fx = self.fx
+  end
+  if self.fx then
+    local x, y, inside = viewport.toGame(love.mouse.getPosition())
+    self.context.healer = inside and {position = vector(x, y)} or nil
+  end
   self.creatures:update(dt, self.context)
+  if self.fx then self.fx:update(dt) end
   self.projectiles:update(dt, { knight = self.context.knight })
 end
 
 function test:draw()
   self.creatures:draw()
   self.projectiles:draw()
+  if self.fx then
+    self.fx:draw()
+    if self.context.healer then
+      local p = self.context.healer.position
+      love.graphics.setColor(0.55, 0.9, 1)
+      love.graphics.circle("line", p.x, p.y, 8)
+      love.graphics.print("Healer (mouse)", p.x+12, p.y+8)
+    end
+  end
   local position = self.context.knight.position
   love.graphics.setColor(1, 0.75, 0.25, 1)
   love.graphics.circle("line", position.x, position.y, 8)
@@ -74,11 +97,21 @@ function test:mousepressed(x, y, button)
     self.dropdownOpen = false
     return -- Clicking outside dismisses the dropdown without spawning.
   end
+  local id = self.selectedCreature.id
+  if id == "ocular_watcher" or id == "brawny_ogre" or id == "humongous_ettin" then
+    self.creatures:create(id, x, y)
+    return
+  end
   self.creatures:create(self.selectedCreature.id, x, y, {
     movementBehavior = self.selectedCreature.id == "bloodshot_eye" and behavior.ranged or behavior.chase,
     speed = 60,
     scale = 2,
   })
+end
+
+function test:destroy()
+  self.projectiles:destroy()
+  if self.fx then self.fx:destroy() end
 end
 
 return test

@@ -70,6 +70,7 @@ function game:enter(previous)
 
   self.spawner = Spawner.new(self.creatures, {
     difficulty = require("src.difficulty"),
+    endless = require("src.endless"),
     speed = 60,
     scale = 2,
   })
@@ -123,15 +124,17 @@ function game:update(dt)
 
   self.spawner:update(dt, self.player.x, self.player.y)
 
+  local function resolveCreatureMovement(creature, destination)
+    return self.map:resolveKnockback(creature.position, destination, 6 * creature.scale)
+  end
   ---@type CreatureSystemContext
   local context = {
     knight = self.knight,
     projectiles = self.projectiles,
     fx = self.fx,
-    healer = self.healer,
-    resolveKnockback = function(creature, destination)
-      return self.map:resolveKnockback(creature.position, destination, 6 * creature.scale)
-    end,
+    healer = self.healer or {position = vector(self.player.x, self.player.y)},
+    resolveMovement = resolveCreatureMovement,
+    resolveKnockback = resolveCreatureMovement,
   }
   self.creatures:update(dt, context)
   self.projectiles:update(dt, {

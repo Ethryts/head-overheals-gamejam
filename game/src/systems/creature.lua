@@ -4,6 +4,9 @@ local Gamestate = require("gamestate.deps").Gamestate
 local behavior = require("behavior")
 local attacks = require("attacks")
 local ogre = require("creatures.brawny_ogre")
+local watcher = require("creatures.ocular_watcher")
+local ettin = require("creatures.humongous_ettin")
+local jelly = require("creatures.ochre_jelly")
 
 ---@class CreatureActor
 ---@field position HumpVector Current position in the same game coordinates as creatures.
@@ -12,7 +15,8 @@ local ogre = require("creatures.brawny_ogre")
 ---@field fx? FxSystem
 ---@field projectiles? ProjectileSystem Ranged attacks spawn into this system.
 ---@field knight? CreatureActor|ProjectileTarget Live knight object; chase follows its position. Nil means no target.
----@field healer? CreatureActor Live healer object, available to behaviors; idle/chase do not target it.
+---@field healer? CreatureActor Live healer position; Watchers dodge away from it.
+---@field resolveMovement? fun(creature: Creature, destination: HumpVector): HumpVector Sweeps voluntary movement against the world.
 ---@field resolveKnockback? fun(creature: Creature, destination: HumpVector): HumpVector, boolean, StructureImpact? Returns corrected position, collision flag and optional surface contact.
 
 ---@class CreatureKnockback
@@ -55,6 +59,7 @@ local ogre = require("creatures.brawny_ogre")
 ---@field knockback? CreatureKnockback Overrides movement and interrupts attacks.
 ---@field knockbackResponse CreatureKnockbackResponse Creature weight response, separate from active knockback state.
 ---@field attackCooldownRemaining number
+---@field watcher? WatcherMovementState Independent orbit and dodge state.
 ---@field pursuitTime? number Ogre's elapsed walk/rest cycle time; frozen during knockback.
 
 ---@class CreatureOptions
@@ -65,7 +70,7 @@ local ogre = require("creatures.brawny_ogre")
 ---@field scale? number Defaults to 1.
 ---@field frameDuration? number Seconds per frame; defaults to 0.2.
 ---@field movementBehavior? CreatureMovementBehavior Defaults to behavior.ranged for ranged attacks, otherwise behavior.idle.
----@field attack? Attack Bloodshot Eyes default to ranged; other creatures default to melee.
+---@field attack? Attack Eyes default to ranged; other creatures default to melee.
 
 ---@class CreatureSystem
 ---@field private creatures Creature[]
@@ -93,7 +98,10 @@ end
 ---@return Creature
 function CreatureSystem:create(monsterId, x, y, options)
   options = options or {}
-  local defaults = monsterId == "brawny_ogre" and ogre or {}
+  local defaults = monsterId == "brawny_ogre" and ogre
+    or monsterId == "ocular_watcher" and watcher
+    or monsterId == "humongous_ettin" and ettin
+    or monsterId == "ochre_jelly" and jelly or {}
   local image, clips = animations.loadMonster(monsterId, options.frameDuration or defaults.frameDuration)
   local attack = options.attack or defaults.attack or (monsterId == "bloodshot_eye" and EYE_ATTACK or DEFAULT_ATTACK)
   local response = options.knockbackResponse or defaults.knockbackResponse
@@ -134,6 +142,7 @@ function CreatureSystem:applyKnockback(creature, direction, distance, duration)
   -- Preserve the decelerating push curve while tuning travel and speed independently.
   distance = distance * response.distanceMultiplier
   duration = duration * response.distanceMultiplier / response.speedMultiplier
+  if creature.watcher then creature.watcher.remaining = 0 end
   creature.knockback = {
     direction = direction:normalized(), distance = distance, duration = duration,
     elapsed = 0, blocked = false,
@@ -142,7 +151,7 @@ function CreatureSystem:applyKnockback(creature, direction, distance, duration)
   return true
 end
 
-local function updateKnockback(creature, dt, context, pendingKills)
+local function updateKnockback(creature, dt, context, pendingImpacts)
   local kick = creature.knockback
   local consumed = math.min(dt, kick.duration - kick.elapsed)
   local before = kick.elapsed / kick.duration
@@ -164,7 +173,7 @@ local function updateKnockback(creature, dt, context, pendingKills)
           context.fx:emit("impact", x, y, {angle = math.atan2(ny, nx), depth = destination.y + 8 * creature.scale})
           context.fx:emit("dust", destination.x, destination.y + 8 * creature.scale)
         end
-        pendingKills[#pendingKills + 1] = creature
+        pendingImpacts[#pendingImpacts + 1] = creature
       end
     end
     creature.position = destination
@@ -179,13 +188,13 @@ end
 function CreatureSystem:update(dt, context)
   context = context or {}
   local canAttack = {}
-  local pendingKills = {}
+  local pendingImpacts = {}
   -- Resolve every movement before any attack reads the resulting positions.
   for _, creature in ipairs(self.creatures) do
     local wasKnockedBack = creature.knockback ~= nil
     local activeDt, hitWall = dt, false
     if wasKnockedBack then
-      activeDt, hitWall = updateKnockback(creature, dt, context, pendingKills)
+      activeDt, hitWall = updateKnockback(creature, dt, context, pendingImpacts)
     end
     canAttack[creature] = not hitWall and (not wasKnockedBack or activeDt > 1e-9)
     if canAttack[creature] then
@@ -197,8 +206,8 @@ function CreatureSystem:update(dt, context)
   for _, creature in ipairs(self.creatures) do
     creature.attackBehavior.update(creature, dt, context, canAttack[creature] == true)
   end
-  for _, creature in ipairs(pendingKills) do
-    self:damage(creature, creature.health)
+  for _, creature in ipairs(pendingImpacts) do
+    self:damage(creature, 1)
   end
 end
 

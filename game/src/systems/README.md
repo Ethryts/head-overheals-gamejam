@@ -156,3 +156,24 @@ shots without applying impact damage. `destroy()` clears shots when leaving the 
 friendly fire, and hero projectiles are not implemented.
 
 Run `luajit tools/test_projectiles.lua` for projectile and integration checks.
+
+## Swarms and endless spawning
+
+Difficulty pools in `src/difficulty.lua` accept creature IDs or group IDs from
+`src/spawns/init.lua`. Each group is a typed file under `src/spawns/`, containing
+creature IDs, counts, and formation spacing. Members are ordinary independent
+creatures; nested groups and shared group health are not supported.
+
+At 120 seconds the pool adds eight slimes/jellies, six mixed eyes, and an ogre
+with four slimes. Each selection creates one formation beyond a single edge of
+the logical viewport. Specialized creatures keep their own stats and behaviors.
+
+`src/endless.lua` controls subsequent escalation: every 30 seconds after 120,
+multiply the stage interval by 0.95 (floor 0.5 seconds), and add 0.25 to the swarm
+weight multiplier (ceiling 4). Group sizes and source definitions stay fixed.
+Pressure plateaus at these limits. The default cap is 150 active creatures;
+a partial swarm fills remaining slots, and skipped members are not queued.
+
+Disabling the spawner freezes progression. Pausing gameplay does not update it;
+a new run creates a fresh spawner. Long frames produce at most one spawn event.
+Run `luajit tools/test_swarms.lua` and `luajit tools/test_difficulty.lua`.

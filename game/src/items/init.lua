@@ -8,6 +8,7 @@ local items = {
   (require("src.items.silver_coin")),
   (require("src.items.golden_heart")),
   (require("src.items.emerald")),
+  (require("src.items.skull")),
 }
 
 return items

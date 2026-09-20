@@ -205,6 +205,17 @@ function CreatureSystem:getAll()
   return self.creatures
 end
 
+function CreatureSystem:clearAll()
+  local snapshot = {}
+  for _, creature in ipairs(self.creatures) do
+    snapshot[#snapshot + 1] = creature
+  end
+  for _, creature in ipairs(snapshot) do
+    self:damage(creature, creature.health)
+  end
+end
+
+
 ---@param creature Creature
 ---@param amount number
 ---@param origin? HumpVector Hit source used for directional sparks.

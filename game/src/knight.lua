@@ -3,12 +3,14 @@ local Gamestate = require("gamestate.deps").Gamestate
 local vector            = require("lib.hump.vector")
 local PlayerAnimation   = require("src.player_animation")
 local Player            = require("src.player")
+local HealthBar = require("src.health_bar")
 
 ---@class Knight: CreatureActor
 ---@field direction 1|-1 Facing direction, preserved while idle.
 ---@field animation PlayerAnimation
----@field health number Clamped to 0..OVERHEAL_LIMIT by setHealth.
----@field stats ActorStats Movement stats; pickup abilities can modify them.
+---@field health number Clamped to 0..(stats.maxHealth * OVERHEAL_RATIO) by setHealth.
+---@field stats ActorStats Movement/health stats; pickup abilities can modify them.
+---@field healthBar HealthBar
 ---@field state "idle"|"moving"|"attacking"
 ---@field idleTimer number Seconds remaining before choosing a destination.
 ---@field attackCooldown number Seconds remaining before the next attack.
@@ -57,6 +59,7 @@ function Knight.new(x, y)
   })
   self.health = STARTING_HEALTH
   self.stats = Stats.new(MOVE_SPEED, STARTING_MAX_HEALTH, STARTING_HEAL_SPEED)
+  self.healthBar = HealthBar.new()
   self.state = "idle"
   self.idleTimer = rollIdleDuration()
   self.attackCooldown = 0
@@ -131,7 +134,8 @@ end
 ---@param dt number Elapsed seconds.
 ---@param creatureSystem CreatureSystem
 ---@param player Player
-function Knight:update(dt, creatureSystem, player)
+---@param healResource HealResource
+function Knight:update(dt, creatureSystem, player, healResource)
   self.healedThisUpdate = false
   if self.dead or self.overhealed then return end
 
@@ -182,9 +186,12 @@ function Knight:update(dt, creatureSystem, player)
       self.position = self.position + (toGoal / distance) * self.stats.speed * dt
     end
   end
-	if Player.doesBeamOverlapWithPoint(player, self.position, ATTACK_RANGE) then
-		self:heal(dt * self.stats.healSpeed)
-	end
+  if Player.doesBeamOverlapWithPoint(player, self.position, ATTACK_RANGE) then
+    local spent = healResource:spend(self.stats.healSpeed * dt)
+    if spent > 0 then
+      self:heal(spent)
+    end
+  end
 end
 
 function Knight:draw()
@@ -195,9 +202,8 @@ function Knight:draw()
 
   -- Flush red as he climbs past the safe cap toward the overheal limit.
   local overRatio = math.max(0, (self.health - self.stats.maxHealth) / (overhealLimit - self.stats.maxHealth))
-  love.graphics.setColor(1, 1 - overRatio, 1 - overRatio)
-  love.graphics.print(string.format("HP: %d / %d", self.health, overhealLimit),
-    self.position.x - 24, self.position.y - 34)
+  local fillColor = { 1, 1 - overRatio, 1 - overRatio, 1 }
+  self.healthBar:draw(self.position.x, self.position.y, self.health / overhealLimit, fillColor)
 end
 
 function Knight:GetHealthPercentage()

@@ -30,6 +30,7 @@ local vector = require("lib.hump.vector")
 ---@field pickups Pickups
 ---@field spawner Spawner
 ---@field timer number Seconds since the game started.
+---@field healResource HealResource
 ---@field score integer Coins collected during the current run.
 local game = {}
 local Player = require("src.player")
@@ -37,6 +38,7 @@ local HC = require("lib.HC")
 local Pickups = require("src.pickups")
 local Knight = require("src.knight")
 local Spawner = require("systems.spawner")
+local HealResource = require("src.heal_resource")
 
 function game:enter(previous)
   self.score = 0
@@ -46,6 +48,7 @@ function game:enter(previous)
   self.dustDistance = 0
   self.knightDustDistance = 0
   self.ui = UI.new()
+  self.healResource = HealResource.new(100, 5)
   self.player = Player.new(0, 0)
   self.player.shape = HC.circle(self.player.x, self.player.y, 16)
   self.map = MapSystem.new({ seed = 1 })
@@ -78,15 +81,16 @@ end
 ---@param dt number Elapsed seconds.
 function game:update(dt)
   game.timer = (game.timer or 0) + dt
-
   self.spawner.interval = math.max(0.5, 2.5 - game.timer / 30) -- gradually increase spawn rate over time
 
   UI.begin(self.ui)
   if self.ui:Button("Pause", UI.width - 144, 20, 120, 40).hit then
     return Gamestate.push(require("gamestate.pause"))
   end
+
   local oldX, oldY = self.player.x, self.player.y
-  Player.update(game.player, dt)
+  Player.update(game.player, dt, self.healResource)
+  self.healResource:update(dt, self.player.currentBeam ~= nil)
   self.pickups:update(dt)
   self.map:resolveMovement(self.player, oldX, oldY)
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
@@ -109,7 +113,7 @@ function game:update(dt)
   end
 
   local knightX, knightY = self.knight.position.x, self.knight.position.y
-  self.knight:update(dt, self.creatures, game.player)
+  self.knight:update(dt, self.creatures, game.player, self.healResource)
   local kdx, kdy = self.knight.position.x - knightX, self.knight.position.y - knightY
   self.knightDustDistance = self.knightDustDistance + math.sqrt(kdx * kdx + kdy * kdy)
   if self.knightDustDistance >= 24 then
@@ -199,6 +203,7 @@ function game:draw()
   love.graphics.print("Score: " .. self.score, 24, 20)
   self.player.kick:drawStatus(24, 48)
   UI.footer("Esc: pause     F2: preview end screen, F3: debug, F4: debug HUD")
+  UI.healBar(self.healResource)
 end
 
 function game:leave()

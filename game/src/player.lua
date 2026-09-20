@@ -5,11 +5,15 @@ local PlayerAnimation = require("src.player_animation")
 local Gamestate = require("gamestate.deps").Gamestate
 local Beam = require("src.beam")
 local Kick = require("src.kick")
+local HealthBar = require("src.health_bar")
 
 ---@class Player
 ---@field x number World-space horizontal position.
 ---@field y number World-space vertical position.
 ---@field stats ActorStats Movement stats; pickup abilities can modify them.
+---@field health number Current health, 0..stats.maxHealth.
+---@field dead boolean
+---@field healthBar HealthBar
 ---@field direction 1|-1 Facing direction, preserved while idle.
 ---@field animation PlayerAnimation
 ---@field input BatonInput
@@ -24,6 +28,8 @@ Player.__index = Player
 
 local PLAYER_SCALE = 4
 local PLAYER_HEAD_SCALE = 4
+local PLAYER_MAX_HEALTH = 100
+local PLAYER_HEAL_SPEED = 10
 ---@param x? number Defaults to 100.
 ---@param y? number Defaults to 100.
 ---@return Player
@@ -36,7 +42,10 @@ function Player.new(x, y)
   })
 	player.x = x or 100
 	player.y = y or 100
-	player.stats = Stats.new(200)
+	player.stats = Stats.new(200, PLAYER_MAX_HEALTH, PLAYER_HEAL_SPEED)
+  player.health = player.stats.maxHealth
+  player.dead = false
+  player.healthBar = HealthBar.new()
 
 	player.allBeams = {}
 	player.currentBeam = nil
@@ -72,8 +81,35 @@ function Player.new(x, y)
 end
 
 ---@param player Player
+---@param amount number
+function Player.takeDamage(player, amount)
+  if player.dead then return end
+  player.health = math.max(0, player.health - amount)
+  if player.health <= 0 then
+    player.dead = true
+  end
+end
+
+-- Spends from the shared heal resource (at stats.healSpeed) to heal the
+-- player. Call this from wherever self-heal is triggered (e.g. holding a
+-- key while a creature-heal condition, standing on a shrine, etc).
+---@param player Player
+---@param healResource HealResource
+---@param dt number
+---@return number amountHealed
+function Player.heal(player, healResource, dt)
+  if player.dead then return 0 end
+  local spent = healResource:spend(player.stats.healSpeed * dt)
+  player.health = math.min(player.stats.maxHealth, player.health + spent)
+  return spent
+end
+
+---@param player Player
 ---@param dt number Elapsed seconds.
-function Player.update(player, dt)
+---@param healResource HealResource
+function Player.update(player, dt, healResource)
+  if player.dead then return end
+
   player.input:update()
   player.kick:update(dt)
   player.kickRequested = player.input:pressed("kick")
@@ -101,7 +137,7 @@ function Player.update(player, dt)
 	end
 
 	local playerPositionVector = vector(player.x, player.y)
-	local isHealing = player.input:down("healBeam")
+	local isHealing = player.input:down("healBeam") and not healResource:isEmpty()
 	if isHealing and directionVector ~= nil then
 		if not player.currentBeam then
 			player.currentBeam = Beam:new(playerPositionVector, directionVector)
@@ -163,6 +199,7 @@ function Player.draw(player)
     if beam.direction.y >= 0 then beam:draw() end
   end
   player.kick:draw()
+  player.healthBar:draw(player.x, player.y, player.health / player.stats.maxHealth)
 end
 
 function Player.doesBeamOverlapWithPoint(player, point, radius)

@@ -93,15 +93,17 @@ beam:startRelease(); beam:update(1,origin,direction)
 assert(not beam.isVisible and not beam:containsPoint(vector(100,0)))
 beam:destroy(); beam:destroy(); assert(released==1)
 local Player=require('src.player')
+local healResource = require('src.heal_resource').new(100, 0)
+healResource:add(100)
 local player=Player.new(0,0)
 -- Simulate repeated beam taps through the real player update path.
 for _=1,20 do
   keys={space=true,right=true}
-  Player.update(player,0.05)
+  Player.update(player, 0.05, healResource)
   Player.draw(player)
   assert(player.currentBeam and #player.allBeams==1)
   keys={}
-  Player.update(player,0.1)
+  Player.update(player, 0.1, healResource)
   assert(not player.currentBeam and #player.allBeams==0,'Finished beams are removed immediately')
 end
 assert(meshes==released,'Completed beams release every mesh')

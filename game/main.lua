@@ -60,3 +60,11 @@ end
 function love.focus(focused)
     Gamestate.focus(focused)
 end
+
+function love.gamepadpressed(joystick, button)
+    Gamestate.gamepadpressed(joystick, button)
+end
+
+function love.gamepadaxis(joystick, axis, value)
+    Gamestate.gamepadaxis(joystick, axis, value)
+end

@@ -7,8 +7,10 @@ local function dimension(header, offset)
   return ((a * 256 + b) * 256 + c) * 256 + d
 end
 love = {
+  mouse = {isDown = function() return false end, getPosition = function() return 0, 0 end},
   joystick = {getJoysticks = function() return {} end},
   graphics = {
+    getDimensions = function() return 960, 540 end,
     newImage = function(path)
       local file = assert(io.open("game/" .. path, "rb"))
       local header = file:read(24); file:close()

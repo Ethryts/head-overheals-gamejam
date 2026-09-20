@@ -87,12 +87,13 @@ function game:update(dt)
   self.spawner.interval = math.max(0.5, 2.5 - game.timer / 30) -- gradually increase spawn rate over time
 
   UI.begin(self.ui)
-  if self.ui:Button("Pause", UI.width - 144, 20, 120, 40).hit then
+  local pauseButton = self.ui:Button("Pause", UI.width - 144, 20, 120, 40)
+  if pauseButton.hit then
     return Gamestate.push(require("gamestate.pause"))
   end
 
   local oldX, oldY = self.player.x, self.player.y
-  Player.update(game.player, dt, self.healResource)
+  Player.update(game.player, dt, self.healResource, pauseButton.hovered)
   self.healResource:update(dt, self.player.currentBeam ~= nil)
   self.pickups:update(dt)
   self.map:resolveMovement(self.player, oldX, oldY)
@@ -207,7 +208,7 @@ function game:draw()
   self.hud:draw(self)
   self.player.kick:drawStatus(24, 384)
   UI.healBar(self.healResource)
-  UI.footer("Esc: pause     F3: debug     F4: debug HUD")
+  UI.footer("Esc / Start: pause     F3: debug     F4: debug HUD")
 end
 
 function game:leave()
@@ -239,6 +240,12 @@ end
 
 function game:focus(focused)
   if not focused then
+    return Gamestate.push(require("gamestate.pause"))
+  end
+end
+
+function game:gamepadpressed(joystick, button)
+  if button == "start" then
     return Gamestate.push(require("gamestate.pause"))
   end
 end

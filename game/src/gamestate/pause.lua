@@ -16,6 +16,10 @@ function pause:toMenu()
     return Gamestate.switch(require("gamestate.menu"))
 end
 
+function pause:resume()
+    self.ui = UI.new()
+end
+
 function pause:update(dt)
     UI.begin(self.ui)
     if self.ui:Button("Resume", UI.buttonRect(1)).hit then
@@ -23,6 +27,9 @@ function pause:update(dt)
     end
     if self.ui:Button("Main menu", UI.buttonRect(2)).hit then
         return self:toMenu()
+    end
+    if self.ui:Button("Help / Controls", UI.buttonRect(3)).hit then
+        return Gamestate.push(require("gamestate.help"))
     end
 end
 
@@ -33,9 +40,9 @@ function pause:draw()
     love.graphics.pop()
     love.graphics.setColor(0, 0, 0, 0.82)
     love.graphics.rectangle("fill", 0, 0, UI.width, UI.height)
-    UI.heading("Paused")
+    UI.heading("Paused", "Start / Esc: resume")
     UI.draw(self.ui)
-    UI.footer("Enter / Esc: resume     M: main menu")
+    UI.navigationFooter("Resume")
 end
 
 function pause:keypressed(key, scancode, isrepeat)
@@ -49,6 +56,17 @@ end
 
 function pause:leave()
     self.game = nil
+end
+
+
+function pause:gamepadpressed(joystick, button)
+    if button == "b" then return Gamestate.pop() end
+    if button == "start" then return Gamestate.pop() end
+    UI.gamepadpressed(self.ui, button)
+end
+
+function pause:gamepadaxis(joystick, axis, value)
+    UI.gamepadaxis(self.ui, axis, value)
 end
 
 return pause

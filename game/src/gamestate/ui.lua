@@ -1,12 +1,17 @@
 local deps = require("gamestate.deps")
 local project = require("project")
 local viewport = require("src.viewport")
+local Navigation = require("ui.navigation")
 local Skin = require("ui.skin")
 local defaultTheme = require("lib.suit.theme")
 local theme = setmetatable({}, {__index = defaultTheme})
 function theme.Button(text, opt, x, y, w, h)
-    Skin.panel(x, y, w, h, opt.state ~= "normal" and 0.6 or 0)
+    Skin.panel(x, y, w, h, (opt.navFocused or opt.state ~= "normal") and 0.6 or 0)
     defaultTheme.Label(text, opt, x, y, w, h)
+    if opt.navFocused then
+      love.graphics.setColor(0.5, 1, 0.65)
+      love.graphics.rectangle("line", x+4, y+4, w-8, h-8)
+    end
 end
 local HealthBar = require("src.health_bar")
 
@@ -19,7 +24,7 @@ local ui = {
 local fonts
 local healBarWidget
 
-function ui.new()
+function ui.new(customTheme)
     if not fonts then
         fonts = {
             title = Skin.font(48),
@@ -30,12 +35,15 @@ function ui.new()
       healBarWidget = HealthBar.new({ width = 200, height = 16, offsetY = 0 })
     end
     -- Each visit starts with a fresh SUIT instance and an empty draw queue.
-    return deps.suit.new(theme)
+    local instance = deps.suit.new(customTheme or theme)
+    Navigation.attach(instance)
+    return instance
 end
 
 function ui.begin(instance)
     local x, y, inside = viewport.toGame(love.mouse.getPosition())
     if not inside then x, y = -math.huge, -math.huge end
+    Navigation.begin(instance, x, y)
     instance:updateMouse(x, y, love.mouse.isDown(1))
     love.graphics.setFont(fonts.body)
 end
@@ -80,6 +88,25 @@ function ui.draw(instance)
     love.graphics.setFont(fonts.body)
     love.graphics.setColor(1, 1, 1)
     instance:draw()
+end
+
+ui.gamepadpressed = Navigation.pressed
+ui.gamepadaxis = Navigation.axis
+
+function ui.navigationFooter(back)
+    love.graphics.setFont(fonts.body)
+    love.graphics.setColor(0.75, 0.8, 0.82)
+    love.graphics.print("D-pad / Left stick: move", 190, ui.height-44)
+    local function badge(letter, label, x, color)
+        love.graphics.setColor(color)
+        love.graphics.circle("fill", x, ui.height-32, 12)
+        love.graphics.setColor(0.05, 0.07, 0.08)
+        love.graphics.printf(letter, x-12, ui.height-44, 24, "center")
+        love.graphics.setColor(0.85, 0.9, 0.9)
+        love.graphics.print(label, x+20, ui.height-44)
+    end
+    badge("A", "Select", 534, {0.45, 0.9, 0.55})
+    if back then badge("B", back, 674, {1, 0.5, 0.45}) end
 end
 
 return ui

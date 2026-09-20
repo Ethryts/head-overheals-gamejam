@@ -205,6 +205,9 @@ package.preload["systems.map"] = function()
     getVisibleStructures = function() return {} end,
   } end}
 end
+package.preload["ui.menu_scene"] = function()
+  return {new = function() return {update = noop, draw = noop, destroy = noop} end}
+end
 dofile("game/main.lua")
 local GS = require("gamestate.deps").Gamestate
 local game = require("gamestate.game")

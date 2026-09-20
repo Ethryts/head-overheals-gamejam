@@ -1,5 +1,4 @@
 local UI = require("gamestate.ui")
-local Knight = require("src.knight")
 
 ---@class KnightHealthTest: DebugTest
 ---@field knight? Knight
@@ -17,7 +16,7 @@ function test.new(game)
   return setmetatable({
     knight = knight,
     ui = UI.new(),
-    health = { value = knight and knight.health or 0, min = 0, max = Knight.OVERHEAL_LIMIT },
+    health = { value = knight and knight.health or 0, min = 0, max = knight and knight.stats.maxHealth * 2 or 200 },
   }, test)
 end
 

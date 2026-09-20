@@ -5,6 +5,7 @@ local PlayerAnimation = require("src.player_animation")
 local Gamestate = require("gamestate.deps").Gamestate
 local Beam = require("src.beam")
 local Kick = require("src.kick")
+local MouseControls = require("src.mouse_controls")
 local HealthBar = require("src.health_bar")
 
 ---@class Player
@@ -16,6 +17,7 @@ local HealthBar = require("src.health_bar")
 ---@field healthBar HealthBar
 ---@field direction 1|-1 Facing direction, preserved while idle.
 ---@field animation PlayerAnimation
+---@field mouse PlayerMouseControls
 ---@field input BatonInput
 ---@field shape? HCShape Assigned by the game when collision is enabled.
 ---@field allBeams Beam[]
@@ -52,6 +54,7 @@ function Player.new(x, y)
 
   player.direction = 1 -- 1: right, -1: left; preserved while idle.
   player.kick = Kick.new()
+  player.mouse = MouseControls.new()
   player.kickDirection = vector(1, 0)
   player.kickRequested = false
 
@@ -107,7 +110,8 @@ end
 ---@param player Player
 ---@param dt number Elapsed seconds.
 ---@param healResource HealResource
-function Player.update(player, dt, healResource)
+---@param mouseBlocked? boolean Cursor is over an interactive HUD control.
+function Player.update(player, dt, healResource, mouseBlocked)
   if player.dead then return end
 
   player.input:update()
@@ -116,6 +120,9 @@ function Player.update(player, dt, healResource)
 
   local dx, dy = player.input:get("move")
 	local aimX, aimY = player.input:get("aim")
+  local mouseHealing, mouseKick
+  aimX, aimY, mouseHealing, mouseKick = MouseControls.update(player.mouse, aimX, aimY, mouseBlocked)
+  player.kickRequested = player.kickRequested or mouseKick
   if aimX ~= 0 or aimY ~= 0 then
     player.kickDirection = vector(aimX, aimY):normalized()
   elseif dx ~= 0 or dy ~= 0 then
@@ -137,7 +144,7 @@ function Player.update(player, dt, healResource)
 	end
 
 	local playerPositionVector = vector(player.x, player.y)
-	local isHealing = player.input:down("healBeam") and not healResource:isEmpty()
+	local isHealing = (player.input:down("healBeam") or mouseHealing) and not healResource:isEmpty()
 	if isHealing and directionVector ~= nil then
 		if not player.currentBeam then
 			player.currentBeam = Beam:new(playerPositionVector, directionVector)
@@ -187,6 +194,7 @@ function Player.resume(player)
   -- Synchronize held controls without turning a press during pause into a kick.
   player.input:update()
   player.kickRequested = false
+  MouseControls.resume(player.mouse)
 end
 
 ---@param player Player

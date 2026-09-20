@@ -19,6 +19,18 @@
 
 ---@type table<string, FxPreset>
 return {
+  menu_embers = {
+    count = 1, rate = 3, lifetime = {1, 2}, speed = {7, 12},
+    angle = -math.pi/2, spread = 0.4, acceleration = {0, -1}, drag = 0.5,
+    spreadX = 5, spreadY = 2, layer = "air", shapes = {"dot"},
+    colors = {{1, 0.65, 0.25}, {0.9, 0.4, 0.12}, {0.4, 0.2, 0.1}}, drift = 2,
+  },
+  menu_dust = {
+    count = 1, rate = 1, lifetime = {3, 5}, speed = {3, 6},
+    angle = -0.2, spread = 0.4, acceleration = {0, 0}, drag = 0,
+    spreadX = 180, spreadY = 100, layer = "air", shapes = {"dot"},
+    colors = {{0.25, 0.27, 0.29}, {0.35, 0.35, 0.32}, {0.2, 0.22, 0.24}},
+  },
   beam_impact = {
     count = 7, rate = 40, lifetime = {0.18, 0.32}, speed = {100, 190},
     angle = math.pi, spread = 2.4, acceleration = {0, 65}, drag = 7,

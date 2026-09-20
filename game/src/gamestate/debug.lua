@@ -57,7 +57,7 @@ function debugState:draw()
   if self.menuOpen then
     UI.heading("Debug tests", "Select a test")
     UI.draw(self.ui)
-    UI.footer("F3 / Esc: exit debug     F4: toggle HUD")
+    UI.navigationFooter("Exit debug")
   else
     self.activeTest:draw()
     UI.footer(self.activeTest.footer or
@@ -88,6 +88,18 @@ function debugState:leave()
   self.game = nil
   self.activeTest = nil
   self.ui = nil
+end
+
+function debugState:gamepadpressed(joystick, button)
+  if button == "b" then return self:keypressed("escape") end
+  if button == "start" then return Gamestate.pop() end
+  local instance = self.menuOpen and self.ui or self.activeTest.ui
+  if instance then UI.gamepadpressed(instance, button) end
+end
+
+function debugState:gamepadaxis(joystick, axis, value)
+  local instance = self.menuOpen and self.ui or self.activeTest.ui
+  if instance then UI.gamepadaxis(instance, axis, value) end
 end
 
 return debugState

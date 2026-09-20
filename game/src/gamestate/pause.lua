@@ -34,10 +34,18 @@ function pause:update(dt)
 end
 
 function pause:draw()
+    self:drawScene()
+    self:drawUI()
+end
+
+function pause:drawScene()
     -- Only redraw the world: no gameplay updates or underlying SUIT controls.
     love.graphics.push("all")
     self.game:drawWorld()
     love.graphics.pop()
+end
+
+function pause:drawUI()
     love.graphics.setColor(0, 0, 0, 0.82)
     love.graphics.rectangle("fill", 0, 0, UI.width, UI.height)
     UI.heading("Paused", "Start / Esc: resume")

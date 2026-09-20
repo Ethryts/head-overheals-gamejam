@@ -1,3 +1,45 @@
+# ShaderSystem
+
+Fullscreen effects are configured in `game/src/shader_config.lua`. The default
+applies diffuse to gameplay, leaving the HUD sharp and menus unaffected.
+Set `includeUI = true` to process the scene and UI together; set
+`includeMenus = true` to also process menu, pause, end, and debug screens.
+These switches apply to the entire chain. With UI excluded, menu backgrounds
+are processed but headings, buttons, pause dimming, and the debug HUD are drawn
+afterward. World-space health bars and debug test drawings are scene content.
+
+Add entries to `effects` in the order they should run:
+
+```lua
+effects = {
+  {name = "diffuse", path = "assets/shaders/diffuse.glsl"},
+  {name = "grade", path = "assets/shaders/grade.glsl", uniforms = {strength = 0.5}},
+}
+```
+
+The second path is an example: supply your own shader file. Each pass samples
+the previous pass's output. `screenSize`, when declared by a shader, is sent
+automatically in texture pixels; other uniform values come from `uniforms`.
+Two canvases are reused and recreated when the window size or DPI changes.
+An empty or disabled chain draws directly without allocating canvases.
+
+Runtime controls are available through `require("gamestate.deps").Gamestate.shaderSystem`:
+
+```lua
+shaders.enabled = false                 -- bypass the whole chain
+shaders.includeUI = true
+shaders.includeMenus = true
+shaders:get("diffuse").enabled = false  -- bypass one effect
+shaders:add("grade", "assets/shaders/grade.glsl", {uniforms = {strength = 0.5}})
+shaders:get("grade").uniforms.strength = 0.8
+shaders:remove("grade")                 -- releases that shader
+```
+
+States implement `drawScene()` and `drawUI()` in logical viewport coordinates.
+Set `isMenu = false` on gameplay states; other states default to menu behavior.
+Keep excluded UI in `drawUI()`. `draw()` remains a convenience to draw both.
+Run `luajit tools/test_shaders.lua` for pipeline checks.
+
 # CreatureSystem
 
 Create one system per run. Creating a creature registers it with that system

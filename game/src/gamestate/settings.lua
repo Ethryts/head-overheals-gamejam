@@ -20,7 +20,15 @@ function page:update(dt)
 end
 
 function page:draw()
+  self:drawScene()
+  self:drawUI()
+end
+
+function page:drawScene()
   UI.background()
+end
+
+function page:drawUI()
   UI.heading("Settings", string.format("Master volume: %.0f%%", settings.volume*100))
   UI.draw(self.ui)
   UI.navigationFooter("Back")

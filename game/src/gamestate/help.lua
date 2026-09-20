@@ -25,7 +25,15 @@ function help:update(dt)
 end
 
 function help:draw()
+  self:drawScene()
+  self:drawUI()
+end
+
+function help:drawScene()
   UI.background()
+end
+
+function help:drawUI()
   love.graphics.setFont(Skin.font(36))
   love.graphics.setColor(1, 0.85, 0.6)
   love.graphics.printf("HOW TO PLAY", 0, 26, UI.width, "center")

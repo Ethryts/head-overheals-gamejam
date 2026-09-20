@@ -22,6 +22,11 @@ love = {
     setRequirePath = function(path) package.path = path end,
   },
   graphics = setmetatable({
+    newShader = function() return {hasUniform = function() return true end,
+      send = noop, release = noop} end,
+    getDPIScale = function() return 1 end,
+    newCanvas = function(w, h) return {setFilter = noop, setWrap = noop, release = noop,
+      getPixelDimensions = function() return w, h end} end,
     newImage = function(path)
       local file = assert(io.open("game/" .. path, "rb"))
       local header = file:read(24)

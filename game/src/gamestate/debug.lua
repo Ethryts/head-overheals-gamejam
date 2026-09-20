@@ -53,13 +53,21 @@ function debugState:update(dt)
 end
 
 function debugState:draw()
+  self:drawScene()
+  self:drawUI()
+end
+
+function debugState:drawScene()
   UI.background()
+  if not self.menuOpen then self.activeTest:draw() end
+end
+
+function debugState:drawUI()
   if self.menuOpen then
     UI.heading("Debug tests", "Select a test")
     UI.draw(self.ui)
     UI.navigationFooter("Exit debug")
   else
-    self.activeTest:draw()
     UI.footer(self.activeTest.footer or
       "Left click: run test     Esc: test menu     F3: exit debug     F4: HUD")
   end

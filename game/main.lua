@@ -9,12 +9,16 @@ local SoundEffectsSystem = require("systems.sound_effects")
 local soundEffects
 local debugState = require("gamestate.debug")
 local debugHud = require("debug.hud")
+local ShaderSystem = require("systems.shader")
+local shaders
 
 function love.load()
 		music = MusicSystem:new()
 		soundEffects = SoundEffectsSystem:new()
     viewport.init(project.width, project.height)
     viewport.resize(love.graphics.getDimensions())
+    shaders = ShaderSystem.new(require("shader_config"))
+    Gamestate.shaderSystem = shaders
 		Gamestate.musicSystem = music
 		Gamestate.soundEffectsSystem = soundEffects
     Gamestate.switch(require("gamestate.menu"))
@@ -27,10 +31,21 @@ end
 
 function love.draw()
     love.graphics.clear(0.035, 0.047, 0.063)
-    viewport.beginDraw()
-    Gamestate.draw()
-    debugHud.draw(Gamestate.current())
-    viewport.endDraw()
+    local state = Gamestate.current()
+    shaders:draw(function()
+        viewport.beginDraw()
+        Gamestate.drawScene()
+        viewport.endDraw()
+    end, function()
+        viewport.beginDraw()
+        Gamestate.drawUI()
+        debugHud.draw(state)
+        viewport.endDraw()
+    end, state.isMenu ~= false)
+end
+
+function love.quit()
+    if shaders then shaders:destroy() end
 end
 
 function love.resize(width, height)

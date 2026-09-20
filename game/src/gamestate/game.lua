@@ -33,7 +33,7 @@ local vector = require("lib.hump.vector")
 ---@field hud GameHud
 ---@field healResource HealResource
 ---@field score integer Coins collected during the current run.
-local game = {}
+local game = {isMenu = false}
 local Player = require("src.player")
 local HC = require("lib.HC")
 local Pickups = require("src.pickups")
@@ -198,7 +198,15 @@ function game:drawWorld()
 end
 
 function game:draw()
+  self:drawScene()
+  self:drawUI()
+end
+
+function game:drawScene()
   self:drawWorld()
+end
+
+function game:drawUI()
   UI.draw(self.ui)
   self.hud:draw(self)
   UI.healBar(self.healResource)

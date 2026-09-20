@@ -11,7 +11,7 @@ vec4 effect(
     vec2 screen_coords
 )
 {
-    vec2 px = 2.0 / screenSize;
+    vec2 px = 1.0 / screenSize;
 
     vec3 result = vec3(0.0);
 

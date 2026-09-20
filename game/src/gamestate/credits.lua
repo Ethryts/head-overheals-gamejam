@@ -15,7 +15,15 @@ function page:update(dt)
 end
 
 function page:draw()
+  self:drawScene()
+  self:drawUI()
+end
+
+function page:drawScene()
   UI.background()
+end
+
+function page:drawUI()
   love.graphics.setFont(Skin.font(48))
   love.graphics.setColor(0.97, 0.94, 0.82)
   love.graphics.printf("CREDITS", 0, 66, UI.width, "center")

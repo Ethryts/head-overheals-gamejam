@@ -20,7 +20,15 @@ function endscreen:update(dt)
 end
 
 function endscreen:draw()
+  self:drawScene()
+  self:drawUI()
+end
+
+function endscreen:drawScene()
     UI.background()
+end
+
+function endscreen:drawUI()
     UI.heading(self.result.title or "Run complete", self.result.message)
     UI.draw(self.ui)
     UI.navigationFooter("Main menu")

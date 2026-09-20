@@ -46,7 +46,15 @@ function menu:update(dt)
 end
 
 function menu:draw()
+  self:drawScene()
+  self:drawUI()
+end
+
+function menu:drawScene()
     self.scene:draw()
+end
+
+function menu:drawUI()
     love.graphics.setFont(Skin.font(72))
     love.graphics.setColor(0.025, 0.03, 0.045)
     for _, offset in ipairs({{-2,0}, {2,0}, {0,-2}, {0,2}, {2,4}}) do

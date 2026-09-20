@@ -51,9 +51,10 @@ function game:update(dt)
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
   self.pickups:checkCollected(self.player.shape)
 
-  self.knight:update(dt, self.creatures)
+  self.knight:update(dt, self.creatures, game.player)
 
   self.spawner:update(dt)
+	Gamestate.musicSystem:receiveHealthUpdate(self.knight:GetHealthPercentage())
 
   ---@type CreatureSystemContext
   local context = { knight = self.knight, healer = self.healer }

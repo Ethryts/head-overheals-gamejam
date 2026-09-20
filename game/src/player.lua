@@ -107,5 +107,17 @@ function Player.draw(player)
 	end
 end
 
+function Player.doesBeamOverlapWithPoint(player, point, radius)
+	if not player.allBeams then
+		return false
+	end
+	for _, beam in ipairs(player.allBeams) do
+		print ("Checking beam at position: ", beam.bottomLeft.x, beam.bottomLeft.y, " with tip at: ", beam.tip.x, beam.tip.y)
+		if beam:containsPoint(point, radius) then
+			return true
+		end
+	end
+	return false
+end
 
 return Player

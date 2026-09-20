@@ -35,7 +35,6 @@ function game.update(dt)
     elapsed = elapsed + dt
     pulse = math.max(0, pulse - dt * 1.5)
     Player.update(game.player, dt)
-    
 end
 
 function game.draw()

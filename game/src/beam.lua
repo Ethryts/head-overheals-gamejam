@@ -222,5 +222,87 @@ function Beam:startRelease()
 	self.isActive = false
 end
 
+function Beam:containsPoint(point, fuzziness)
+
+	print('im here', point, fuzziness, self.isVisible)
+	if not self.isVisible then
+		print ('not visible')
+		return false
+	end
+
+	fuzziness = fuzziness or 0
+
+	local p0 = self.bottomLeft
+	local p2 = self.tip
+
+	local midpoint = (p0 + p2) / 2
+
+	local beamDirection = (p2 - p0):normalized()
+
+	local perpendicular = vector(
+		-beamDirection.y,
+		beamDirection.x
+	)
+
+	local p1 = midpoint + perpendicular * self.bend
+
+	local segments = 20
+
+	-- Normal beam radius + fuzziness
+	local collisionRadius =
+		self.width / 2 + fuzziness
+
+	local collisionRadiusSquared =
+		collisionRadius * collisionRadius
+
+	for i = 0, segments - 1 do
+		local t0 = i / segments
+		local t1 = (i + 1) / segments
+
+		local point0 =
+			self:bezier(p0, p1, p2, t0)
+
+		local point1 =
+			self:bezier(p0, p1, p2, t1)
+
+		-- Vector along this beam segment
+		local segment = point1 - point0
+
+		local segmentLengthSquared =
+			segment.x * segment.x +
+			segment.y * segment.y
+
+		-- Find closest point on the segment
+		local t = 0
+
+		if segmentLengthSquared > 0 then
+			t =
+				((point.x - point0.x) * segment.x +
+				 (point.y - point0.y) * segment.y)
+				/ segmentLengthSquared
+
+			t = math.max(0, math.min(1, t))
+		end
+
+		local closestPoint =
+			point0 + segment * t
+
+		-- Distance from test point to beam
+		local difference =
+			point - closestPoint
+
+		local distanceSquared =
+			difference.x * difference.x +
+			difference.y * difference.y
+
+		if distanceSquared <= collisionRadiusSquared then
+			return true
+		end
+	end
+
+	return false
+end
+
+
 return Beam
 

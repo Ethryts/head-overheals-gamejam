@@ -1,5 +1,6 @@
 local vector            = require("lib.hump.vector")
 local PlayerAnimation   = require("src.player_animation")
+local Player            = require("src.player")
 
 local Knight            = {}
 Knight.__index          = Knight
@@ -81,7 +82,7 @@ local function findNearest(self, creatureSystem)
   return nearest, nearestDist
 end
 
-function Knight:update(dt, creatureSystem)
+function Knight:update(dt, creatureSystem, player)
   if self.dead or self.overhealed then return end
 
   self.animation:update(dt)
@@ -118,6 +119,10 @@ function Knight:update(dt, creatureSystem)
     end
   end
 
+	if Player.doesBeamOverlapWithPoint(player, self.position, ATTACK_RANGE) then
+		self:heal(dt * 10)
+	end
+
   self:clampToScreen()
 end
 
@@ -142,6 +147,10 @@ function Knight:draw()
   love.graphics.setColor(1, 1 - overRatio, 1 - overRatio)
   love.graphics.print(string.format("HP: %d / %d", self.health, OVERHEAL_LIMIT),
     self.position.x - 24, self.position.y - 34)
+end
+
+function Knight:GetHealthPercentage()
+	return (self.health / MAX_SAFE_HEALTH) * 100
 end
 
 return Knight

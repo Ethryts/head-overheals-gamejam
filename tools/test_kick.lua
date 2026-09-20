@@ -114,6 +114,12 @@ assert(player.x > 0 and player.kick.direction == vector(0, -1))
 near(player.kick.origin.x, player.x, "Kick uses the latest position")
 Player.update(player, 1, healResource)
 assert(not Player.resolveKick(player, creatures), "Held analog trigger never repeats")
+player.superKickDuration = 10
+Player.update(player, 0.01, healResource)
+assert(Player.resolveKick(player, creatures), "Held left trigger repeats during Super Kick")
+Player.update(player, 0.01, healResource)
+assert(player.kickRequested, "Held left trigger remains active during Super Kick")
+player.superKickDuration = 0
 axes.triggerleft = 0; Player.update(player, 0, healResource)
 axes.triggerleft = 1; Player.update(player, 0, healResource)
 assert(Player.resolveKick(player, creatures))

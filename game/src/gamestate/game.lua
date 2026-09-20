@@ -3,6 +3,7 @@ local UI = require("gamestate.ui")
 local CreatureSystem = require("systems.creature")
 local ProjectileSystem = require("systems.projectile")
 local MapSystem = require("systems.map")
+local vector = require("lib.hump.vector")
 ---@class GameContext
 ---@field player? Player
 ---@field knight? Knight
@@ -77,6 +78,12 @@ function game:update(dt)
   self.map:resolveMovement(self.player, oldX, oldY)
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
   self.pickups:checkCollected(self.player, self.knight, self)
+  local function traceBeam(origin, destination, radius)
+    return self.map:traceProjectile(origin, destination, radius)
+  end
+  for _, beam in ipairs(self.player.allBeams or {}) do
+    beam:clipAgainstWorld(traceBeam, vector(self.player.x, self.player.y))
+  end
   Player.resolveKick(self.player, self.creatures, self.projectiles)
 
   self.knight:update(dt, self.creatures, game.player)
@@ -120,14 +127,35 @@ function game:drawWorld()
   UI.background()
   love.graphics.push("all")
   love.graphics.translate(UI.width / 2 - self.player.x, UI.height / 2 - self.player.y)
-  local playerFeetY = self.player.animation:getFeetY(self.player.y)
-  self.map:draw(playerFeetY)
+  self.map:drawFloor()
   self.pickups:draw()
-  self.creatures:draw()
-  self.knight:draw()
-  Player.draw(self.player)
+
+  -- Sort every body by its ground anchor, across all visible chunks.
+  -- Keep whole sprites together so tall heads are hidden by nearby pillars.
+  local bodies = {}
+  local function add(y, draw, object, argument)
+    bodies[#bodies + 1] = {
+      y = y, draw = draw, object = object, argument = argument, order = #bodies + 1,
+    }
+  end
+  for _, creature in ipairs(self.creatures:getAll()) do
+    add(self.creatures:getFeetY(creature), self.creatures.drawCreature, self.creatures, creature)
+  end
+  add(self.knight.animation:getFeetY(self.knight.position.y), self.knight.draw, self.knight)
+  add(self.player.animation:getFeetY(self.player.y), Player.draw, self.player)
+  for _, chunk in ipairs(self.map.visible) do
+    for _, structure in ipairs(chunk.structures) do
+      add(structure.y, structure.draw, structure)
+    end
+  end
+  table.sort(bodies, function(a, b)
+    if a.y == b.y then return a.order < b.order end
+    return a.y < b.y
+  end)
+  for _, body in ipairs(bodies) do
+    body.draw(body.object, body.argument)
+  end
   self.projectiles:draw()
-  self.map:drawForeground(playerFeetY)
   love.graphics.pop()
 end
 

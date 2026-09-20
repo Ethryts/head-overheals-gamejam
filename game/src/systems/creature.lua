@@ -158,19 +158,28 @@ function CreatureSystem:update(dt, context)
   end
 end
 
-function CreatureSystem:draw()
+function CreatureSystem:getFeetY(creature)
+  local _, height = creature.animations.idle:getDimensions()
+  return creature.position.y + height / 2 * creature.scale
+end
+
+function CreatureSystem:drawCreature(creature)
   love.graphics.push("all")
-  for _, creature in ipairs(self.creatures) do
-    local flash = creature.knockback
-      and (1 - creature.knockback.elapsed / creature.knockback.duration) or 0
-    love.graphics.setColor(1, 1, 1 - 0.7 * flash, 1)
-    local animation = creature.animations.idle
-    local width, height = animation:getDimensions()
-    animation:draw(creature.image,
-      creature.position.x, creature.position.y, 0, creature.scale, creature.scale,
-      width / 2, height / 2)
-  end
+  local flash = creature.knockback
+    and (1 - creature.knockback.elapsed / creature.knockback.duration) or 0
+  love.graphics.setColor(1, 1, 1 - 0.7 * flash, 1)
+  local animation = creature.animations.idle
+  local width, height = animation:getDimensions()
+  animation:draw(creature.image,
+    creature.position.x, creature.position.y, 0, creature.scale, creature.scale,
+    width / 2, height / 2)
   love.graphics.pop()
+end
+
+function CreatureSystem:draw()
+  for _, creature in ipairs(self.creatures) do
+    self:drawCreature(creature)
+  end
 end
 
 ---@return Creature[]

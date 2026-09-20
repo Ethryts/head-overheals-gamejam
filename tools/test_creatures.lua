@@ -182,12 +182,13 @@ end
 package.preload["src.knight"] = function()
   return {OVERHEAL_LIMIT = 200, new = function(x, y) return {
     position = vector(x, y), update = noop, draw = noop, setPatrolRadius = noop,
+    animation = {getFeetY = function(_, y) return y end},
     GetHealthPercentage = function() return 100 end,
   } end}
 end
 package.preload["systems.map"] = function()
   return {new = function() return {
-    update = noop, draw = noop, drawForeground = noop, destroy = noop, resolveMovement = noop,
+    update = noop, drawFloor = noop, visible = {}, destroy = noop, resolveMovement = noop,
   } end}
 end
 dofile("game/main.lua")

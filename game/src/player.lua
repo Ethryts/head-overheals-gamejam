@@ -200,10 +200,11 @@ end
 ---@param creatures CreatureSystem
 ---@param projectiles? ProjectileSystem
 ---@param fx? FxSystem
-function Player.resolveKick(player, creatures, projectiles, fx)
+---@param structures? MapStructure[]
+function Player.resolveKick(player, creatures, projectiles, fx, structures)
   if not player.kickRequested then return false end
   player.kickRequested = false
-  return player.kick:tryActivate(player.x, player.y, player.kickDirection, creatures, projectiles, fx)
+  return player.kick:tryActivate(player.x, player.y, player.kickDirection, creatures, projectiles, fx, structures)
 end
 
 function Player.resume(player)

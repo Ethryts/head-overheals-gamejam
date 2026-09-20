@@ -37,7 +37,8 @@ end
 ---@param projectiles? ProjectileSystem Shots in the kick arc are destroyed on activation.
 ---@return boolean activated
 ---@param fx? FxSystem
-function Kick:tryActivate(x, y, direction, creatures, projectiles, fx)
+---@param structures? MapStructure[]
+function Kick:tryActivate(x, y, direction, creatures, projectiles, fx, structures)
   if self.cooldownRemaining > 0 or direction:len() == 0 then return false end
   local tuning = Kick.tuning
   self.origin = vector(x, y)
@@ -62,6 +63,12 @@ function Kick:tryActivate(x, y, direction, creatures, projectiles, fx)
       if fx then fx:emit("sparks", shot.position.x, shot.position.y, {angle = math.atan2(direction.y, direction.x)}) end
       return true
     end)
+  end
+  for _, structure in ipairs(structures or {}) do
+    if structure.breakable and structure.shape then
+      local sx, sy = structure.shape:center()
+      if inArc(vector(sx, sy)) then structure:launch(self.direction) end
+    end
   end
   return true
 end

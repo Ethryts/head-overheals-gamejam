@@ -55,11 +55,24 @@ return {
     spreadX = 2, spreadY = 2, layer = "air", shapes = {"line", "line", "dot"},
     colors = {{1, 1, 0.85}, {1, 0.75, 0.18}, {0.65, 0.25, 0.04}}, shrink = true,
   },
+  wood_break = {
+    count = 18, rate = 0, lifetime = {0.25, 0.55}, speed = {70, 160},
+    angle = -math.pi / 2, spread = math.pi * 2, acceleration = {0, 240}, drag = 2,
+    spreadX = 5, spreadY = 4, layer = "air", shapes = {"line", "line", "cluster", "dot"},
+    colors = {{0.85, 0.65, 0.35}, {0.55, 0.32, 0.14}, {0.3, 0.18, 0.09}}, shrink = true,
+  },
   dust = {
     count = 5, rate = 12, lifetime = {0.25, 0.45}, speed = {14, 30},
     angle = -math.pi / 2, spread = math.pi * 2, acceleration = {0, 22}, drag = 5,
     spreadX = 7, spreadY = 2, layer = "ground", shapes = {"cluster", "cluster", "dot"},
     colors = {{0.48, 0.46, 0.40}, {0.36, 0.35, 0.32}, {0.24, 0.25, 0.24}}, shrink = true,
+  },
+  brazier_flame = {
+    count = 4, rate = 22, lifetime = {0.25, 0.55}, speed = {12, 28},
+    angle = -math.pi / 2, spread = 0.55, acceleration = {0, -12}, drag = 0.5,
+    spreadX = 7, spreadY = 2, layer = "air", shapes = {"cluster", "cluster", "dot"},
+    colors = {{1, 0.9, 0.4}, {1, 0.5, 0.08}, {0.65, 0.16, 0.03}},
+    flicker = true, shrink = true, drift = 2,
   },
   embers = {
     count = 6, rate = 9, lifetime = {0.8, 1.4}, speed = {10, 19},

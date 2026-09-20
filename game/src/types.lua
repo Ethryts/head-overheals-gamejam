@@ -49,6 +49,7 @@
 ---@alias PickupRarity "common"|"uncommon"|"rare"
 
 ---@class Item
+---@field color? number[] RGB tint used by pickup particles.
 ---@field id string Stable item ID.
 ---@field name string Display name.
 ---@field rarity PickupRarity

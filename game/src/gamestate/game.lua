@@ -3,6 +3,9 @@ local UI = require("gamestate.ui")
 local CreatureSystem = require("systems.creature")
 local ProjectileSystem = require("systems.projectile")
 local MapSystem = require("systems.map")
+local FxSystem = require("systems.fx")
+local WorldCanvas = require("src.world_canvas")
+local DrawQueue = require("fx.draw_queue")
 ---@class GameContext
 ---@field player? Player
 ---@field knight? Knight
@@ -18,6 +21,11 @@ local MapSystem = require("systems.map")
 ---@field map MapSystem
 ---@field creatures CreatureSystem
 ---@field projectiles ProjectileSystem
+---@field fx FxSystem
+---@field worldCanvas WorldCanvas
+---@field healingEmitter? FxEmitter
+---@field dustDistance number
+---@field knightDustDistance number
 ---@field pickups Pickups
 ---@field spawner Spawner
 ---@field timer number Seconds since the game started.
@@ -31,6 +39,11 @@ local Spawner = require("systems.spawner")
 
 function game:enter(previous)
   self.score = 0
+  self.fx = FxSystem.new()
+  self.worldCanvas = WorldCanvas.new()
+  self.healingEmitter = nil
+  self.dustDistance = 0
+  self.knightDustDistance = 0
   self.ui = UI.new()
   self.player = Player.new(0, 0)
   self.player.shape = HC.circle(self.player.x, self.player.y, 16)
@@ -40,7 +53,7 @@ function game:enter(previous)
   self.pickups = Pickups.new(self.player)
   self.pickups:spawn(15)
 
-  self.creatures = CreatureSystem.new()
+  self.creatures = CreatureSystem.new(self.fx)
   self.creatures:create("death_slime", UI.width / 2, UI.height / 2, {
     scale = 4,
   })
@@ -77,9 +90,24 @@ function game:update(dt)
   self.map:resolveMovement(self.player, oldX, oldY)
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
   self.pickups:checkCollected(self.player, self.knight, self)
-  Player.resolveKick(self.player, self.creatures, self.projectiles)
+  local dx, dy = self.player.x - oldX, self.player.y - oldY
+  self.dustDistance = self.dustDistance + math.sqrt(dx * dx + dy * dy)
+  if self.dustDistance >= 24 then
+    self.fx:emit("dust", self.player.x, self.player.animation:getFeetY(self.player.y))
+    self.dustDistance = self.dustDistance % 24
+  end
+  if Player.resolveKick(self.player, self.creatures, self.projectiles, self.fx) then
+    self.fx:emit("dust", self.player.x, self.player.animation:getFeetY(self.player.y))
+  end
 
+  local knightX, knightY = self.knight.position.x, self.knight.position.y
   self.knight:update(dt, self.creatures, game.player)
+  local kdx, kdy = self.knight.position.x - knightX, self.knight.position.y - knightY
+  self.knightDustDistance = self.knightDustDistance + math.sqrt(kdx * kdx + kdy * kdy)
+  if self.knightDustDistance >= 24 then
+    self.fx:emit("dust", self.knight.position.x, self.knight.animation:getFeetY(self.knight.position.y))
+    self.knightDustDistance = self.knightDustDistance % 24
+  end
 
 
   self.spawner:update(dt, self.player.x, self.player.y)
@@ -88,6 +116,7 @@ function game:update(dt)
   local context = {
     knight = self.knight,
     projectiles = self.projectiles,
+    fx = self.fx,
     healer = self.healer,
     resolveKnockback = function(creature, destination)
       return self.map:resolveKnockback(creature.position, destination, 6 * creature.scale)
@@ -95,11 +124,24 @@ function game:update(dt)
   }
   self.creatures:update(dt, context)
   self.projectiles:update(dt, {
+    fx = self.fx,
     knight = self.knight,
     traceWorld = function(origin, destination, radius)
       return self.map:traceProjectile(origin, destination, radius)
     end,
   })
+
+  local feetY = self.knight.animation:getFeetY(self.knight.position.y)
+  if self.knight.healedThisUpdate and not self.knight.dead and not self.knight.overhealed then
+    if not self.healingEmitter then
+      self.healingEmitter = self.fx:start("healing", self.knight.position.x, self.knight.position.y, {depth = feetY})
+    end
+    self.healingEmitter:setPosition(self.knight.position.x, self.knight.position.y, feetY)
+  elseif self.healingEmitter then
+    self.healingEmitter:stop()
+    self.healingEmitter = nil
+  end
+  self.fx:update(dt)
 
   if self.knight.dead then
     Gamestate.soundEffectsSystem:stopAllSoundEffects()
@@ -116,19 +158,30 @@ function game:update(dt)
 end
 
 function game:drawWorld()
-  -- Keep drawing free of updates; pause also calls this method.
-  UI.background()
-  love.graphics.push("all")
-  love.graphics.translate(UI.width / 2 - self.player.x, UI.height / 2 - self.player.y)
-  local playerFeetY = self.player.animation:getFeetY(self.player.y)
-  self.map:draw(playerFeetY)
-  self.pickups:draw()
-  self.creatures:draw()
-  self.knight:draw()
-  Player.draw(self.player)
-  self.projectiles:draw()
-  self.map:drawForeground(playerFeetY)
-  love.graphics.pop()
+  self.worldCanvas:draw(function()
+    love.graphics.translate(UI.width / 2 - self.player.x, UI.height / 2 - self.player.y)
+    self.map:draw(-math.huge) -- Floor only; pillars join the depth queue below.
+    self.fx:draw("ground")
+    self.pickups:draw()
+    local queue = DrawQueue.new()
+    for _, structure in ipairs(self.map:getVisibleStructures()) do
+      queue:add(structure.y, function() structure:draw() end)
+    end
+    for _, creature in ipairs(self.creatures:getAll()) do
+      queue:add(creature.position.y + 8 * creature.scale, function() self.creatures:drawCreature(creature) end)
+    end
+    queue:add(self.knight.animation:getFeetY(self.knight.position.y), function() self.knight:draw() end)
+    queue:add(self.player.animation:getFeetY(self.player.y), function() Player.draw(self.player) end)
+    for _, shot in ipairs(self.projectiles.projectiles) do
+      queue:add(shot.position.y, function() self.projectiles:drawProjectile(shot) end)
+    end
+    for _, particle in ipairs(self.fx.particles) do
+      if particle.preset.layer == "air" then
+        queue:add(particle.depth, function() self.fx:drawParticle(particle) end)
+      end
+    end
+    queue:draw()
+  end)
 end
 
 function game:draw()
@@ -140,6 +193,9 @@ function game:draw()
 end
 
 function game:leave()
+  self.fx:destroy()
+  self.worldCanvas:destroy()
+  self.healingEmitter = nil
   self.pickups:destroy()
   self.projectiles:destroy()
   HC.remove(self.player.shape)

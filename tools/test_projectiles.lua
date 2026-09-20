@@ -34,6 +34,7 @@ love = {
     end}
   end},
   graphics = setmetatable({
+    newCanvas = function() return {setFilter = noop, release = noop} end,
     newImage = function(path)
       local file = assert(io.open("game/" .. path, "rb"))
       local header = file:read(24); file:close()
@@ -248,6 +249,7 @@ local game=require('gamestate.game')
 game.spawner:setEnabled(false); game.pickups:destroy(); game.pickups.batchSize=0
 game.creatures=Creatures.new(); game.knight.idleTimer=100
 local hp=game.knight.health
+local startingHealth=hp
 game.projectiles:spawn({position=vector(40,0),direction=vector(-1,0)})
 keys={f=true,right=true}; love.update(0.2)
 assert(#game.projectiles.projectiles==0 and game.knight.health==hp,
@@ -258,8 +260,8 @@ love.update(0.1)
 local at=live.position:clone()
 love.keypressed('escape'); love.update(1)
 local drawCount=0
-local drawShots=game.projectiles.draw
-game.projectiles.draw=function(self) drawCount=drawCount+1; drawShots(self) end
+local drawShots=game.projectiles.drawProjectile
+game.projectiles.drawProjectile=function(self, shot) drawCount=drawCount+1; drawShots(self, shot) end
 love.draw(); assert(drawCount==1 and live.position==at, 'Paused world still draws frozen projectiles')
 love.keypressed('return'); love.update(0.1); assert(live.position.x>at.x)
 love.keypressed('f3')
@@ -279,6 +281,6 @@ assert(GS.current()==require('gamestate.endscreen'), 'Projectile death ends the 
 assert(#game.projectiles.projectiles==0 and next(HC.hash():shapes())==nil)
 love.update(0) -- Let HUMP enter the end-screen event cycle before pressing restart.
 love.keypressed('return'); love.update(0)
-assert(GS.current()==game and #game.projectiles.projectiles==0 and game.knight.health==100)
+assert(GS.current()==game and #game.projectiles.projectiles==0 and game.knight.health==startingHealth)
 game:leave()
 print('Projectile tests passed: swept hits, pillars, streaming, ranged combat, kick destruction, pause, debug isolation and restart')

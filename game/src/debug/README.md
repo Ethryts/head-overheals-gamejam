@@ -9,6 +9,8 @@
   centered knight marker. Dropdown clicks, right clicks, and clicks in
   letterbox bars do not spawn. Clicking outside an open dropdown dismisses it;
   click again to spawn.
+- **Particle FX** previews sparks, dust, embers, healing motes, and pickup bursts.
+  Click in the scene for a burst; use **Toggle emitter** to start/stop emission.
 - **Esc** returns to the test menu; Esc again exits debug.
 
 The regular game is frozen while debug is open. Each selected test starts

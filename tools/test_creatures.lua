@@ -160,6 +160,13 @@ assert(wholeCreature.position == splitCreature.position, "Movement scales with d
 package.preload["lib.HC"] = function()
   return {circle = function() return {} end, remove = noop}
 end
+-- Rendering/FX have their own suite; keep this fixture focused on creature state.
+package.preload["src.world_canvas"] = function()
+  return {new = function() return {draw = function(_, draw) draw() end, destroy = noop} end}
+end
+package.preload["systems.fx"] = function()
+  return {new = function() return {particles = {}, update = noop, draw = noop, emit = noop, destroy = noop} end}
+end
 package.preload["src.player"] = function()
   return {new = function(x, y)
     return {x = x, y = y, kick = {drawStatus = noop},
@@ -182,12 +189,14 @@ end
 package.preload["src.knight"] = function()
   return {OVERHEAL_LIMIT = 200, new = function(x, y) return {
     position = vector(x, y), update = noop, draw = noop, setPatrolRadius = noop,
+    animation = {getFeetY = function(_, py) return py + 32 end},
     GetHealthPercentage = function() return 100 end,
   } end}
 end
 package.preload["systems.map"] = function()
   return {new = function() return {
     update = noop, draw = noop, drawForeground = noop, destroy = noop, resolveMovement = noop,
+    getVisibleStructures = function() return {} end,
   } end}
 end
 dofile("game/main.lua")
@@ -322,7 +331,7 @@ love.keypressed("escape")
 frame()
 assert(debugState.menuOpen)
 love.mousepressed(160, 200, 1)
-assert(debugState.activeTest == sandbox, "Menu must not dispatch test clicks")
+assert(debugState.activeTest == nil and #created == 2, "Menu releases the test and must not dispatch clicks")
 love.keypressed("f3")
 love.update(0)
 assert(GS.current() == prior and debugState.activeTest == nil)

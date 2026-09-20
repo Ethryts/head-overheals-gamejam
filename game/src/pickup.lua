@@ -55,6 +55,9 @@ function Pickup:collect(context)
   if self.removed then return false end
   self:destroy()
   self.item.onCollect(self, context)
+  if context.game and context.game.fx then
+    context.game.fx:emit("pickup", self.x, self.y, {color = self.item.color})
+  end
 	Gamestate.soundEffectsSystem:playSoundEffect(self.item.soundEffectName, true)
   return true
 end

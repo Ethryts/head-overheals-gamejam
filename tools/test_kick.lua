@@ -34,6 +34,7 @@ love = {
     end}
   end},
   graphics = setmetatable({
+    newCanvas = function() return {setFilter = noop, release = noop} end,
     newImage = function(path)
       local file = assert(io.open("game/" .. path, "rb"))
       local header = file:read(24); file:close()

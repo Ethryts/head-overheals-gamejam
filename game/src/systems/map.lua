@@ -246,6 +246,15 @@ function MapSystem:drawForeground(splitY)
   love.graphics.pop()
 end
 
+---@return MapStructure[]
+function MapSystem:getVisibleStructures()
+  local structures = {}
+  for _, chunk in ipairs(self.visible) do
+    for _, structure in ipairs(chunk.structures) do structures[#structures + 1] = structure end
+  end
+  return structures
+end
+
 function MapSystem:destroy()
   for _, chunk in pairs(self.chunks) do releaseChunk(chunk) end
   self.chunks = {}

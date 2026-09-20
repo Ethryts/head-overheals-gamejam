@@ -1,6 +1,7 @@
 local Gamestate = require("gamestate.deps").Gamestate
 ---@type Item
 local item = {
+  color = {0.75, 0.83, 0.9},
   id = "silver_coin",
   name = "Silver coin",
   rarity = "common",

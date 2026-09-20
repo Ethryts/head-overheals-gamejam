@@ -54,17 +54,16 @@ for _, item in ipairs(require('src.items')) do
   assert(getmetatable(item)==nil, 'Items are plain typed tables')
   assert(type(item.onCollect)=='function' and type(item.id)=='string')
 end
-assert(pickups:chooseItem(0).id=='healer_boots')
-assert(pickups:chooseItem(69.999/170).id=='healer_boots')
-assert(pickups:chooseItem(70/170).id=='knight_feather')
-assert(pickups:chooseItem(95/170).id=='party_haste')
-assert(pickups:chooseItem(0.99999).id=='gold_coin')
+-- Check proportions against the current item catalog, including newly added items.
+local items=require('src.items')
+local total=0
+for _,item in ipairs(items) do total=total+item.weight end
 local counts={}
-for i=0,16999 do
-  local id=pickups:chooseItem((i+0.5)/17000).id
+for i=0,total*100-1 do
+  local id=pickups:chooseItem((i+0.5)/(total*100)).id
   counts[id]=(counts[id] or 0)+1
 end
-assert(counts.healer_boots==7000 and counts.knight_feather==2500 and counts.party_haste==500 and counts.gold_coin==7000)
+for _,item in ipairs(items) do assert((counts[item.id] or 0)==item.weight*100) end
 local startLoads=imageLoads
 local boots=pickups:create(bootsItem,player.x,player.y)
 local boots2=pickups:create(bootsItem,player.x+100,player.y)

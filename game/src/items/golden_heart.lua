@@ -1,5 +1,6 @@
 ---@type Item
 local item = {
+  color = {1, 0.7, 0.15},
   id = "golden_heart",
   name = "Golden heart",
   rarity = "rare",

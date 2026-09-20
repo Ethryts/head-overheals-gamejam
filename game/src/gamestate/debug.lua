@@ -7,6 +7,7 @@ local tests = require("debug.tests")
 ---@field draw fun(self: DebugTest)
 ---@field mousepressed? fun(self: DebugTest, x: number, y: number, button: integer)
 ---@field footer? string
+---@field destroy? fun(self: DebugTest) Releases resources when leaving the test.
 
 ---@class DebugTestDefinition
 ---@field label string
@@ -30,6 +31,7 @@ end
 
 ---@param definition DebugTestDefinition
 function debugState:selectTest(definition)
+  if self.activeTest and self.activeTest.destroy then self.activeTest:destroy() end
   self.activeTest = definition.new(self.game)
   self.menuOpen = false
   self.debugLabel = definition.label
@@ -67,6 +69,8 @@ function debugState:keypressed(key, scancode, isrepeat)
   if isrepeat then return end
   if key == "escape" then
     if self.menuOpen then return Gamestate.pop() end
+    if self.activeTest.destroy then self.activeTest:destroy() end
+    self.activeTest = nil
     self.menuOpen = true
     self.debugLabel = "Test menu"
     self.ui = UI.new()
@@ -80,6 +84,7 @@ function debugState:mousepressed(...)
 end
 
 function debugState:leave()
+  if self.activeTest and self.activeTest.destroy then self.activeTest:destroy() end
   self.game = nil
   self.activeTest = nil
   self.ui = nil

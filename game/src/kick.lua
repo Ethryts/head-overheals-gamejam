@@ -36,7 +36,8 @@ end
 ---@param creatures CreatureSystem
 ---@param projectiles? ProjectileSystem Shots in the kick arc are destroyed on activation.
 ---@return boolean activated
-function Kick:tryActivate(x, y, direction, creatures, projectiles)
+---@param fx? FxSystem
+function Kick:tryActivate(x, y, direction, creatures, projectiles, fx)
   if self.cooldownRemaining > 0 or direction:len() == 0 then return false end
   local tuning = Kick.tuning
   self.origin = vector(x, y)
@@ -56,7 +57,11 @@ function Kick:tryActivate(x, y, direction, creatures, projectiles)
     end
   end
   if projectiles then
-    projectiles:removeWhere(function(shot) return inArc(shot.position) end)
+    projectiles:removeWhere(function(shot)
+      if not inArc(shot.position) then return false end
+      if fx then fx:emit("sparks", shot.position.x, shot.position.y, {angle = math.atan2(direction.y, direction.x)}) end
+      return true
+    end)
   end
   return true
 end

@@ -15,6 +15,7 @@ local Player            = require("src.player")
 ---@field destination? HumpVector
 ---@field dead boolean
 ---@field overhealed boolean
+---@field healedThisUpdate boolean Visual feedback for active healing.
 ---@field patrolRadius? number Patrol radius in world pixels.
 ---@field patrolAnchor? HumpVector Center of the patrol area.
 local Knight            = {}
@@ -62,6 +63,7 @@ function Knight.new(x, y)
   self.destination = nil
   self.dead = false
   self.overhealed = false
+  self.healedThisUpdate = false
   return self
 end
 
@@ -112,6 +114,7 @@ end
 function Knight:heal(amount)
   if self.dead or self.overhealed then return end
   self:setHealth(self.health + amount)
+  if amount > 0 then self.healedThisUpdate = true end
 end
 
 local function findInRange(self, creatureSystem, range)
@@ -129,6 +132,7 @@ end
 ---@param creatureSystem CreatureSystem
 ---@param player Player
 function Knight:update(dt, creatureSystem, player)
+  self.healedThisUpdate = false
   if self.dead or self.overhealed then return end
 
   self.animation:update(dt)
@@ -139,7 +143,7 @@ function Knight:update(dt, creatureSystem, player)
 
   if isAttacking and self.attackCooldown <= 0 then
     for _, target in ipairs(targets) do
-      creatureSystem:damage(target, 1)
+      creatureSystem:damage(target, 1, self.position)
     end
     self.attackCooldown = ATTACK_COOLDOWN
   end

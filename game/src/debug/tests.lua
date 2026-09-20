@@ -4,4 +4,5 @@
 return {
   (require("debug.spawn_creature")),
   (require("debug.knight_health")),
+  (require("debug.fx")),
 }

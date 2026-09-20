@@ -8,6 +8,7 @@ local attacks = require("attacks")
 ---@field position HumpVector Current position in the same game coordinates as creatures.
 
 ---@class CreatureSystemContext
+---@field fx? FxSystem
 ---@field projectiles? ProjectileSystem Ranged attacks spawn into this system.
 ---@field knight? CreatureActor|ProjectileTarget Live knight object; chase follows its position. Nil means no target.
 ---@field healer? CreatureActor Live healer object, available to behaviors; idle/chase do not target it.
@@ -60,6 +61,7 @@ local attacks = require("attacks")
 
 ---@class CreatureSystem
 ---@field private creatures Creature[]
+---@field fx? FxSystem
 local CreatureSystem = {}
 CreatureSystem.__index = CreatureSystem
 
@@ -68,8 +70,9 @@ local EYE_ATTACK = { type = "ranged", damage = 1, cooldown = 1.5, range = 300,
   projectile = { speed = 240, radius = 4, lifespan = 3 } }
 
 ---@return CreatureSystem
-function CreatureSystem.new()
-  return setmetatable({ creatures = {} }, CreatureSystem)
+---@param fx? FxSystem
+function CreatureSystem.new(fx)
+  return setmetatable({ creatures = {}, fx = fx }, CreatureSystem)
 end
 
 ---@param monsterId string
@@ -158,19 +161,21 @@ function CreatureSystem:update(dt, context)
   end
 end
 
-function CreatureSystem:draw()
+---@param creature Creature
+function CreatureSystem:drawCreature(creature)
   love.graphics.push("all")
-  for _, creature in ipairs(self.creatures) do
-    local flash = creature.knockback
-      and (1 - creature.knockback.elapsed / creature.knockback.duration) or 0
-    love.graphics.setColor(1, 1, 1 - 0.7 * flash, 1)
-    local animation = creature.animations.idle
-    local width, height = animation:getDimensions()
-    animation:draw(creature.image,
-      creature.position.x, creature.position.y, 0, creature.scale, creature.scale,
-      width / 2, height / 2)
-  end
+  local flash = creature.knockback
+    and (1 - creature.knockback.elapsed / creature.knockback.duration) or 0
+  love.graphics.setColor(1, 1, 1 - 0.7 * flash, 1)
+  local animation = creature.animations.idle
+  local width, height = animation:getDimensions()
+  animation:draw(creature.image, creature.position.x, creature.position.y,
+    0, creature.scale, creature.scale, width / 2, height / 2)
   love.graphics.pop()
+end
+
+function CreatureSystem:draw()
+  for _, creature in ipairs(self.creatures) do self:drawCreature(creature) end
 end
 
 ---@return Creature[]
@@ -180,7 +185,15 @@ end
 
 ---@param creature Creature
 ---@param amount number
-function CreatureSystem:damage(creature, amount)
+---@param origin? HumpVector Hit source used for directional sparks.
+function CreatureSystem:damage(creature, amount, origin)
+  if self.fx and amount > 0 and creature.health > 0 then
+    local dx = origin and creature.position.x - origin.x or 1
+    local dy = origin and creature.position.y - origin.y or 0
+    self.fx:emit("sparks", creature.position.x, creature.position.y, {
+      angle = math.atan2(dy, dx), depth = creature.position.y + 8 * creature.scale,
+    })
+  end
   creature.health = creature.health - amount
   if creature.health <= 0 then
     for i, c in ipairs(self.creatures) do

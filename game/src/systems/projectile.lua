@@ -22,6 +22,7 @@
 
 ---@class ProjectileContext
 ---@field knight? ProjectileTarget
+---@field fx? FxSystem
 ---@field traceWorld? fun(origin: HumpVector, destination: HumpVector, radius: number): number? Earliest blocking fraction in [0, 1].
 
 ---@class ProjectileSystem
@@ -80,6 +81,11 @@ function ProjectileSystem:update(dt, context)
     if target and (not wall or target < wall) then
       knight:takeDamage(shot.damage)
     end
+    local impact = wall and target and math.min(wall, target) or wall or target
+    if impact and context.fx then
+      local at = shot.position + (destination - shot.position) * impact
+      context.fx:emit("sparks", at.x, at.y, {angle = math.atan2(-shot.velocity.y, -shot.velocity.x)})
+    end
     shot.lifespan = shot.lifespan - travelTime
     if wall or target or shot.lifespan <= 0 then
       table.remove(self.projectiles, i)
@@ -89,13 +95,16 @@ function ProjectileSystem:update(dt, context)
   end
 end
 
-function ProjectileSystem:draw()
+---@param shot Projectile
+function ProjectileSystem:drawProjectile(shot)
   love.graphics.push("all")
   love.graphics.setColor(1, 0.2, 0.15, 1)
-  for _, shot in ipairs(self.projectiles) do
-    love.graphics.circle("fill", shot.position.x, shot.position.y, shot.radius)
-  end
+  love.graphics.circle("fill", shot.position.x, shot.position.y, shot.radius)
   love.graphics.pop()
+end
+
+function ProjectileSystem:draw()
+  for _, shot in ipairs(self.projectiles) do self:drawProjectile(shot) end
 end
 
 ---@param predicate fun(projectile: Projectile): boolean

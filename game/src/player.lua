@@ -23,6 +23,8 @@ local HealthBar = require("src.health_bar")
 ---@field kick Kick
 ---@field kickDirection HumpVector Current aim, movement, or last nonzero direction.
 ---@field kickRequested boolean One-frame input, consumed after map collision.
+---@field lastDrainAmount number Heal charge actually spent this frame; 0 when the beam is inactive or the tank was empty.
+---@field healBeamLockedOut boolean Fixes when heal meter is at 0 and holding space
 local Player = {}
 Player.__index = Player
 
@@ -54,6 +56,7 @@ function Player.new(x, y)
   player.kick = Kick.new()
   player.kickDirection = vector(1, 0)
   player.kickRequested = false
+  player.healBeamLockedOut = false
 
   player.input = baton.new({
     controls = {
@@ -137,7 +140,16 @@ function Player.update(player, dt, healResource)
 	end
 
 	local playerPositionVector = vector(player.x, player.y)
-	local isHealing = player.input:down("healBeam") and not healResource:isEmpty()
+	local wantsHealing = player.input:down("healBeam")
+
+  if wantsHealing and healResource:isEmpty() then
+    player.healBeamLockedOut = true
+  elseif not wantsHealing then
+    player.healBeamLockedOut = false
+  end
+
+  local isHealing = wantsHealing and not player.healBeamLockedOut and not healResource:isEmpty()
+
 	if isHealing and directionVector ~= nil then
 		if not player.currentBeam then
 			player.currentBeam = Beam:new(playerPositionVector, directionVector)
@@ -147,6 +159,10 @@ function Player.update(player, dt, healResource)
 		player.currentBeam:startRelease()
 		player.currentBeam = nil
 	end
+  player.lastDrainAmount = 0
+  if player.currentBeam then
+    player.lastDrainAmount = healResource:spend(player.stats.healSpeed * dt)
+  end
 
   local moveX = dx * player.stats.speed * dt
   local moveY = dy * player.stats.speed * dt

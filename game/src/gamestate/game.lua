@@ -113,7 +113,7 @@ function game:update(dt)
   end
 
   local knightX, knightY = self.knight.position.x, self.knight.position.y
-  self.knight:update(dt, self.creatures, game.player, self.healResource)
+  self.knight:update(dt, self.creatures, game.player)
   local kdx, kdy = self.knight.position.x - knightX, self.knight.position.y - knightY
   self.knightDustDistance = self.knightDustDistance + math.sqrt(kdx * kdx + kdy * kdy)
   if self.knightDustDistance >= 24 then

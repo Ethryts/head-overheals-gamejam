@@ -7,7 +7,7 @@ local controls = {
   {"Aim beam / kick", "Mouse / Arrow keys", "Right stick"},
   {"Heal", "Left click / Space", "RT / RB"},
   {"Kick", "Right click / F", "LT"},
-  {"Pause / Resume", "Esc", "Start"},
+  {"Pause / Resume", "Esc", "Menu / Start"},
   {"Menu navigation", "Mouse", "D-pad / Left stick"},
   {"Select / Back", "Click / Esc", "A / B"},
 }
@@ -44,7 +44,7 @@ function help:drawUI()
   Skin.panel(100, 126, UI.width-200, 290)
   local columns = {124, 360, 636}
   love.graphics.setColor(1, 0.8, 0.52)
-  for i, label in ipairs({"ACTION", "MOUSE / KEYBOARD", "CONTROLLER"}) do
+  for i, label in ipairs({"ACTION", "MOUSE / KEYBOARD", "XBOX CONTROLLER"}) do
     love.graphics.print(label, columns[i], 142)
   end
   for i, row in ipairs(controls) do

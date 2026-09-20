@@ -17,6 +17,18 @@ npm run dev
 Open **http://127.0.0.1:8000**, then click **Play**. Click the canvas or press
 Space to test input; F3 toggles stats. The page has a fullscreen button.
 
+### Xbox controls
+
+| Action | Xbox controller |
+| --- | --- |
+| Move | Left stick or D-pad |
+| Aim beam / kick | Right stick |
+| Heal | Right trigger or right bumper |
+| Kick | Left trigger |
+| Pause / resume | Menu button |
+| Navigate menus | D-pad or left stick |
+| Select / back | A / B |
+
 For faster iteration, use `love game` / `make run` locally. Rebuild the web
 version regularly, especially after adding audio, shaders, or libraries.
 There is no file watcher or hot reload: `npm run dev` builds once and serves;

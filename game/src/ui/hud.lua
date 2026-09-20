@@ -76,8 +76,12 @@ function Hud:draw(game)
     Skin.panel(16, y, 176, 128)
     love.graphics.setColor(1, 0.8, 0.52)
     love.graphics.print(actor == "player" and "HEALER" or "KNIGHT", 36, y + 12)
-    for i, stat in ipairs(stats) do
-      self:row(actor .. "." .. stat.key, stat.label, 36, y + 32 + (i - 1) * 28)
+    local row = 0
+    for _, stat in ipairs(stats) do
+      if actor ~= "player" or stat.key ~= "maxHealth" then
+        self:row(actor .. "." .. stat.key, stat.label, 36, y + 32 + row * 28)
+        row = row + 1
+      end
     end
   end
   love.graphics.pop()

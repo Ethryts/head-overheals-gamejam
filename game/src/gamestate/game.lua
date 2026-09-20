@@ -33,6 +33,7 @@ local vector = require("lib.hump.vector")
 ---@field hud GameHud
 ---@field healResource HealResource
 ---@field score integer Coins collected during the current run.
+---@field demo? DemoSettings Debug staging settings, reset on a new run.
 local game = {isMenu = false}
 local Player = require("src.player")
 local HC = require("lib.HC")
@@ -43,7 +44,9 @@ local Hud = require("ui.hud")
 local HealResource = require("src.heal_resource")
 
 function game:enter(previous)
+  self.demo = nil
   self.score = 0
+  self.overhealSequenceStarted = false
   self.timer = 0
   self.fx = FxSystem.new()
   self.worldCanvas = WorldCanvas.new()
@@ -90,6 +93,16 @@ end
 
 ---@param dt number Elapsed seconds.
 function game:update(dt)
+  if self.knight.dying then
+    self:beginOverhealSequence()
+    self.knight:update(dt, self.creatures, self.player)
+    self.fx:update(dt)
+    if self.knight.dead then
+      return self:finish({ title = "Overhealed", message = "The knight's head exploded." })
+    end
+    return
+  end
+  self.overhealSequenceStarted = false
   game.timer = (game.timer or 0) + dt
 
   UI.begin(self.ui)
@@ -148,7 +161,9 @@ function game:update(dt)
   end
 
 
-  self.spawner:update(dt, self.player.x, self.player.y)
+  if not self.demo or self.demo.autoSpawn then
+    self.spawner:update(dt, self.player.x, self.player.y)
+  end
 
   local function resolveCreatureMovement(creature, destination)
     return self.map:resolveKnockback(creature.position, destination, 6 * creature.scale)
@@ -192,14 +207,24 @@ function game:update(dt)
     Gamestate.soundEffectsSystem:stopAllSoundEffects()
     Gamestate.soundEffectsSystem:playSoundEffect("Death")
     return self:finish({ title = "You lost", message = "The knight has fallen." })
-  elseif self.knight.overhealed then
-    Gamestate.soundEffectsSystem:stopAllSoundEffects()
-    Gamestate.soundEffectsSystem:playSoundEffect("HeadOverhealed")
-    return self:finish({ title = "Overhealed", message = "The knight's head exploded." })
+  elseif self.knight.dying then
+    self:beginOverhealSequence()
+    return
   end
 
   Gamestate.musicSystem:receiveHealthUpdate(self.knight:GetHealthPercentage())
   -- When finished: return self:finish({ title = "Finished", message = "..." })
+end
+
+-- Freeze gameplay while the one-shot sound, buildup and sprite fracture play out.
+function game:beginOverhealSequence()
+  if self.overhealSequenceStarted then return end
+  self.overhealSequenceStarted = true
+  Gamestate.soundEffectsSystem:stopAllSoundEffects()
+  Gamestate.soundEffectsSystem:playSoundEffect("HeadOverhealed")
+  if self.healingEmitter then self.healingEmitter:stop(); self.healingEmitter = nil end
+  for _, beam in ipairs(self.player.allBeams or {}) do beam:destroy() end
+  self.player.allBeams, self.player.currentBeam = {}, nil
 end
 
 function game:drawWorld()
@@ -240,6 +265,12 @@ function game:drawScene()
 end
 
 function game:drawUI()
+  if self.demo and self.demo.hideHud then return end
+  -- Keep collection names out of the low-resolution world canvas and its shader.
+  love.graphics.push("all")
+  love.graphics.translate(UI.width / 2 - self.player.x, UI.height / 2 - self.player.y)
+  self.pickups:drawLabels()
+  love.graphics.pop()
   UI.draw(self.ui)
   self.hud:draw(self)
   UI.healBar(self.healResource)

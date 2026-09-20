@@ -78,10 +78,16 @@ end
 
 --@param healResource HealResource
 function ui.healBar(healResource)
+  love.graphics.push("all")
+  love.graphics.translate(16, ui.height - 16)
+  love.graphics.scale(0.75, 0.75)
+  local x, y = 0, -68
+  Skin.panel(x, y, 232, 68)
   love.graphics.setFont(fonts.body)
   love.graphics.setColor(0.93, 0.95, 0.96)
-  love.graphics.print("Heal charge", 24, ui.height - 76)
-  healBarWidget:draw(124, ui.height - 60, healResource:getRatio())
+  love.graphics.print("Heal charge", x + 16, y + 12)
+  healBarWidget:draw(x + 116, y + 36, healResource:getRatio())
+  love.graphics.pop()
 end
 
 function ui.draw(instance)

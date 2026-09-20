@@ -30,6 +30,8 @@
 
 ---@class BatonInput
 ---@field update fun(self: BatonInput)
+---@field pressed fun(self: BatonInput, control: string): boolean
+---@field down fun(self: BatonInput, control: string): boolean
 ---@field get fun(self: BatonInput, control: string): number, number? Second value is present for paired controls.
 
 ---@class HCShape

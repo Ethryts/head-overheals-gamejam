@@ -28,7 +28,7 @@ package.loaded['lib.baton'] = {new=function()
   return {update=function() end, get=function(_,name)
     if name=='move' then return 1,0 end
     return 0,0
-  end, down=function() return false end}
+  end, down=function() return false end, pressed=function() return false end}
 end}
 local HC = require('lib.HC')
 local Player = require('src.player')

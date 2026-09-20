@@ -55,7 +55,7 @@ end
 
 function game:resume(previous)
   self.ui = UI.new()
-  -- Resuming the game from pause
+  Player.resume(self.player)
 end
 
 ---@param dt number Elapsed seconds.
@@ -74,6 +74,7 @@ function game:update(dt)
   self.map:resolveMovement(self.player, oldX, oldY)
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
   self.pickups:checkCollected(self.player, self.knight, self)
+  Player.resolveKick(self.player, self.creatures)
 
   self.knight:update(dt, self.creatures, game.player)
 
@@ -87,7 +88,12 @@ function game:update(dt)
 	Gamestate.musicSystem:receiveHealthUpdate(self.knight:GetHealthPercentage())
 
   ---@type CreatureSystemContext
-  local context = { knight = self.knight, healer = self.healer }
+  local context = {
+    knight = self.knight, healer = self.healer,
+    resolveKnockback = function(creature, destination)
+      return self.map:resolveKnockback(creature.position, destination, 6 * creature.scale)
+    end,
+  }
   self.creatures:update(dt, context)
   -- When finished: return self:finish({ title = "Finished", message = "..." })
 end
@@ -111,6 +117,7 @@ function game:draw()
   self:drawWorld()
   UI.draw(self.ui)
   love.graphics.print("Score: " .. self.score, 24, 20)
+  self.player.kick:drawStatus(24, 48)
   UI.footer("Esc: pause     F2: preview end screen, F3: debug, F4: debug HUD")
 end
 

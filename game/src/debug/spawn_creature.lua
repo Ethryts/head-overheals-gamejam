@@ -1,4 +1,5 @@
 local CreatureSystem = require("systems.creature")
+local ProjectileSystem = require("systems.projectile")
 local behavior = require("behavior")
 local vector = require("lib.hump.vector")
 local project = require("project")
@@ -15,13 +16,19 @@ local test = { label = "Spawn creature on click" }
 test.__index = test
 
 function test.new()
+  local projectiles = ProjectileSystem.new()
+  local knight = {
+    position = vector(project.width / 2, project.height / 2), health = 100,
+    takeDamage = function(self, amount) self.health = math.max(0, self.health - amount) end,
+  }
   return setmetatable({
     creatures = CreatureSystem.new(),
+    projectiles = projectiles,
     ui = UI.new(),
     selectedCreature = options[1],
     dropdownOpen = false,
     ---@type CreatureSystemContext
-    context = { knight = { position = vector(project.width / 2, project.height / 2) } },
+    context = { knight = knight, projectiles = projectiles },
   }, test)
 end
 
@@ -41,16 +48,18 @@ function test:update(dt)
     end
   end
   self.creatures:update(dt, self.context)
+  self.projectiles:update(dt, { knight = self.context.knight })
 end
 
 function test:draw()
   self.creatures:draw()
+  self.projectiles:draw()
   local position = self.context.knight.position
   love.graphics.setColor(1, 0.75, 0.25, 1)
   love.graphics.circle("line", position.x, position.y, 8)
   love.graphics.line(position.x - 12, position.y, position.x + 12, position.y)
   love.graphics.line(position.x, position.y - 12, position.x, position.y + 12)
-  love.graphics.print("Knight (stub)", position.x + 16, position.y - 8)
+  love.graphics.print("Knight (stub) HP: " .. self.context.knight.health, position.x + 16, position.y - 8)
   UI.draw(self.ui)
 end
 
@@ -66,7 +75,7 @@ function test:mousepressed(x, y, button)
     return -- Clicking outside dismisses the dropdown without spawning.
   end
   self.creatures:create(self.selectedCreature.id, x, y, {
-    behavior = behavior.chase,
+    movementBehavior = self.selectedCreature.id == "bloodshot_eye" and behavior.ranged or behavior.chase,
     speed = 60,
     scale = 2,
   })

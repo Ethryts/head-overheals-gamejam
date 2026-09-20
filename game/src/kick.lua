@@ -31,8 +31,9 @@ function Kick:update(dt)
 end
 
 ---@param creatures CreatureSystem
+---@param projectiles? ProjectileSystem Shots in the kick arc are destroyed on activation.
 ---@return boolean activated
-function Kick:tryActivate(x, y, direction, creatures)
+function Kick:tryActivate(x, y, direction, creatures, projectiles)
   if self.cooldownRemaining > 0 or direction:len() == 0 then return false end
   local tuning = Kick.tuning
   self.origin = vector(x, y)
@@ -40,13 +41,19 @@ function Kick:tryActivate(x, y, direction, creatures)
   self.cooldownRemaining = tuning.cooldown
   self.effectRemaining = tuning.effectDuration
   local threshold = math.cos(tuning.arc / 2)
-  for _, creature in ipairs(creatures:getAll()) do
-    local offset = creature.position - self.origin
+  local function inArc(position)
+    local offset = position - self.origin
     local distance = offset:len()
     local dot = offset.x * self.direction.x + offset.y * self.direction.y
-    if distance <= tuning.range and (distance == 0 or dot / distance >= threshold - 1e-9) then
+    return distance <= tuning.range and (distance == 0 or dot / distance >= threshold - 1e-9)
+  end
+  for _, creature in ipairs(creatures:getAll()) do
+    if inArc(creature.position) then
       creatures:applyKnockback(creature, self.direction, tuning.distance, tuning.duration)
     end
+  end
+  if projectiles then
+    projectiles:removeWhere(function(shot) return inArc(shot.position) end)
   end
   return true
 end

@@ -195,6 +195,26 @@ function MapSystem:resolveKnockback(origin, destination, radius)
   return require("lib.hump.vector")(actor.x, actor.y), collided
 end
 
+---@param origin HumpVector
+---@param destination HumpVector
+---@param radius number
+---@return number? fraction Earliest pillar impact, or nil for a clear path.
+function MapSystem:traceProjectile(origin, destination, radius)
+  if not self.structureSystem then return nil end
+  -- Stream the swept bounds without changing the camera's visible chunk list.
+  local left = math.floor((math.min(origin.x, destination.x) - radius) / self.chunkSize)
+  local right = math.floor((math.max(origin.x, destination.x) + radius) / self.chunkSize)
+  local top = math.floor((math.min(origin.y, destination.y) - radius) / self.chunkSize)
+  local bottom = math.floor((math.max(origin.y, destination.y) + radius) / self.chunkSize)
+  for cy = top, bottom do
+    for cx = left, right do
+      local id = key(cx, cy)
+      if not self.chunks[id] then self.chunks[id] = self:createChunk(cx, cy) end
+    end
+  end
+  return self.structureSystem:traceProjectile(origin, destination, radius)
+end
+
 -- Caller applies the world/camera transform. No generation occurs during draw.
 -- With splitY, draw only structures behind that anchor; drawForeground draws
 -- the rest after the player, allowing tall pillars to occlude the player.

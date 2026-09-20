@@ -1,4 +1,4 @@
----@type CreatureBehavior
+---@type CreatureMovementBehavior
 local idle = {}
 
 ---@param creature Creature

@@ -91,7 +91,7 @@ function Spawner:spawnOne(anchorX, anchorY)
     local x, y = randomOffscreenPoint(anchorX, anchorY, self.margin)
 
     return self.creatureSystem:create(id, x, y, {
-        behavior = behavior.chase,
+        movementBehavior = id == "bloodshot_eye" and behavior.ranged or behavior.chase,
         speed = self.speed,
         scale = self.scale,
     })

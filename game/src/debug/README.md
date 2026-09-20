@@ -13,7 +13,10 @@
 
 The regular game is frozen while debug is open. Each selected test starts
 fresh; debug creatures never enter the regular game's CreatureSystem.
-The knight stub supplies only a position. No character handlers are required.
+The knight stub has a position and a visible health counter. Bloodshot Eyes
+stop at firing range and shoot at it; other creatures use melee attacks. This
+test owns a separate projectile system and has no pillars. No character handlers
+are required, and the active game's knight is unaffected.
 
 To add tests, add a module to `debug/tests.lua`. Provide `label`, `new()`, and
 instance methods `update(dt)`, `draw()`, plus optional `mousepressed(...)`.

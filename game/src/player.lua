@@ -246,7 +246,6 @@ function Player.draw(player)
     if beam.direction.y >= 0 then beam:draw() end
   end
   player.kick:draw()
-  player.healthBar:draw(player.x, player.y, player.health / player.stats.maxHealth)
 end
 
 function Player.doesBeamOverlapWithPoint(player, point, radius)

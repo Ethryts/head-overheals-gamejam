@@ -120,7 +120,7 @@ function CreatureSystem:applyKnockback(creature, direction, distance, duration)
   return true
 end
 
-local function updateKnockback(creature, dt, context)
+local function updateKnockback(creature, dt, context, pendingKills)
   local kick = creature.knockback
   local consumed = math.min(dt, kick.duration - kick.elapsed)
   local before = kick.elapsed / kick.duration
@@ -133,13 +133,16 @@ local function updateKnockback(creature, dt, context)
     if context.resolveKnockback then
       local impact
       destination, kick.blocked, impact = context.resolveKnockback(creature, destination)
-      if kick.blocked and context.fx then
-        local x = impact and impact.x or destination.x + kick.direction.x * 6 * creature.scale
-        local y = impact and impact.y or destination.y + kick.direction.y * 6 * creature.scale
-        local nx = impact and impact.normalX or -kick.direction.x
-        local ny = impact and impact.normalY or -kick.direction.y
-        context.fx:emit("impact", x, y, {angle = math.atan2(ny, nx), depth = destination.y + 8 * creature.scale})
-        context.fx:emit("dust", destination.x, destination.y + 8 * creature.scale)
+      if kick.blocked then
+        if context.fx then
+          local x = impact and impact.x or destination.x + kick.direction.x * 6 * creature.scale
+          local y = impact and impact.y or destination.y + kick.direction.y * 6 * creature.scale
+          local nx = impact and impact.normalX or -kick.direction.x
+          local ny = impact and impact.normalY or -kick.direction.y
+          context.fx:emit("impact", x, y, {angle = math.atan2(ny, nx), depth = destination.y + 8 * creature.scale})
+          context.fx:emit("dust", destination.x, destination.y + 8 * creature.scale)
+        end
+        pendingKills[#pendingKills + 1] = creature
       end
     end
     creature.position = destination
@@ -154,10 +157,11 @@ end
 function CreatureSystem:update(dt, context)
   context = context or {}
   local canAttack = {}
+  local pendingKills = {}
   -- Resolve every movement before any attack reads the resulting positions.
   for _, creature in ipairs(self.creatures) do
     local wasKnockedBack = creature.knockback ~= nil
-    local activeDt = wasKnockedBack and updateKnockback(creature, dt, context) or dt
+    local activeDt = wasKnockedBack and updateKnockback(creature, dt, context, pendingKills) or dt
     canAttack[creature] = not wasKnockedBack or activeDt > 1e-9
     if canAttack[creature] then
       creature.movementBehavior.update(creature, activeDt, context)
@@ -167,6 +171,9 @@ function CreatureSystem:update(dt, context)
   end
   for _, creature in ipairs(self.creatures) do
     creature.attackBehavior.update(creature, dt, context, canAttack[creature] == true)
+  end
+  for _, creature in ipairs(pendingKills) do
+    self:damage(creature, creature.health)
   end
 end
 

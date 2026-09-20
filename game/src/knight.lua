@@ -134,8 +134,7 @@ end
 ---@param dt number Elapsed seconds.
 ---@param creatureSystem CreatureSystem
 ---@param player Player
----@param healResource HealResource
-function Knight:update(dt, creatureSystem, player, healResource)
+function Knight:update(dt, creatureSystem, player)
   self.healedThisUpdate = false
   if self.dead or self.overhealed then return end
 
@@ -187,10 +186,7 @@ function Knight:update(dt, creatureSystem, player, healResource)
     end
   end
   if Player.doesBeamOverlapWithPoint(player, self.position, ATTACK_RANGE) then
-    local spent = healResource:spend(self.stats.healSpeed * dt)
-    if spent > 0 then
-      self:heal(spent)
-    end
+      self:heal(player.lastDrainAmount)
   end
 end
 

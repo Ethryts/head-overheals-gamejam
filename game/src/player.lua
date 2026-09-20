@@ -102,7 +102,6 @@ function Player.update(player, dt)
 
 	if moveX ~= 0 and moveY ~= 0 then
 		Gamestate.soundEffectsSystem:playWithLowPass("Step")
-		love.audio.setPosition(player.x, player.y, 0)
 	end
 
   player.x = player.x + moveX

@@ -19,8 +19,8 @@ function SoundEffectsSystem:new()
 		{ name = "HealingPassive", path = "assets/audio/sfx/healing-passive.wav", source = nil },
 		{ name = "HeadOverhealed", path = "assets/audio/sfx/head-overhealed.mp3", source = nil },
 		{ name = "HealingPassive", path = "assets/audio/sfx/healing-passive.wav", source = nil },
-		{ name = "SlimeDeath", path = "assets/audio/sfx/slime-death.wav", source = nil },
-		{ name = "EyeballDeath", path = "assets/audio/sfx/eyeball-death.wav", source = nil },
+		{ name = "SlimeDeath", path = "assets/audio/sfx/slimed-out.mp3", source = nil },
+		{ name = "EyeballDeath", path = "assets/audio/sfx/eyeball-death.mp3", source = nil },
 	}
 
 	self:loadAllEffects()
@@ -33,12 +33,9 @@ function SoundEffectsSystem:loadAllEffects()
 	end
 end
 
-function SoundEffectsSystem:playSoundEffect(effectName, force, position)
+function SoundEffectsSystem:playSoundEffect(effectName, force)
 	for _, effect in ipairs(self.effects) do
 		if effect.name == effectName then
-			if position then
-				effect.source:setPosition(position.x, position.y, 0)
-			end
 			if effect.source:isPlaying() then
 				if force then
 					local clone = effect.source:clone()

@@ -1,5 +1,6 @@
 local vector = require("lib.hump.vector")
 local animations = require("systems.monster_animations")
+local Gamestate = require("gamestate.deps").Gamestate
 local behavior = require("behavior")
 
 ---@class CreatureActor
@@ -130,6 +131,13 @@ function CreatureSystem:damage(creature, amount)
   if creature.health <= 0 then
     for i, c in ipairs(self.creatures) do
       if c == creature then
+				Gamestate.soundEffectsSystem:playSoundEffect("MonsterDeath")
+				if creature.kind == 'death_slime' or creature.kind == 'ochre_jelly' then
+					Gamestate.soundEffectsSystem:playSoundEffect("SlimeDeath", true)
+				end
+				if creature.kind == 'bloodshot_eye' then
+					Gamestate.soundEffectsSystem:playSoundEffect("EyeballDeath", true)
+				end
         table.remove(self.creatures, i)
         break
       end

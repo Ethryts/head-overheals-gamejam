@@ -21,8 +21,8 @@ Kick.tuning = {
 Kick.superTuning = {
   range = 80,
   arc = math.pi / 2,
-  distance = 1600,
-  duration = 0.45,
+  distance = 900,
+  duration = 0.35,
   cooldown = 0,
   effectDuration = 0.2,
 }
@@ -64,7 +64,15 @@ function Kick:tryActivate(x, y, direction, creatures, projectiles, fx, superKick
   end
   for _, creature in ipairs(creatures:getAll()) do
     if inArc(creature.position) then
-      creatures:applyKnockback(creature, self.direction, tuning.distance, tuning.duration, superKick)
+      local knockbackDirection = self.direction
+      if superKick then
+        local spread = (math.random() * 2 - 1) * tuning.arc / 2
+        local cosine, sine = math.cos(spread), math.sin(spread)
+        knockbackDirection = vector(
+          self.direction.x * cosine - self.direction.y * sine,
+          self.direction.x * sine + self.direction.y * cosine)
+      end
+      creatures:applyKnockback(creature, knockbackDirection, tuning.distance, tuning.duration, superKick)
     end
   end
   if projectiles then

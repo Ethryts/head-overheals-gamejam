@@ -27,8 +27,9 @@ local HealthBar = require("src.health_bar")
 ---@field kickRequested boolean One-frame input, consumed after map collision.
 ---@field lastDrainAmount number Heal charge actually spent this frame; 0 when the beam is inactive or the tank was empty.
 ---@field healBeamLockedOut boolean Fixes when heal meter is at 0 and holding space
----@field beamMode "heal"|"death"|"charm" Current beam behavior, changed by timed pickups.
+---@field beamMode "heal"|"death"|"charm" Current beam behavior, changed by pickups.
 ---@field beamModeDuration number Seconds remaining for the current temporary beam mode.
+---@field charmCharges integer Creatures remaining that the charm beam can affect.
 ---@field superKickDuration number Seconds remaining for the temporary super kick mode.
 local Player = {}
 Player.__index = Player
@@ -65,6 +66,7 @@ function Player.new(x, y)
   player.healBeamLockedOut = false
   player.beamMode = "heal"
   player.beamModeDuration = 0
+  player.charmCharges = 0
   player.superKickDuration = 0
 
   player.input = baton.new({
@@ -125,7 +127,10 @@ function Player.update(player, dt, healResource, mouseBlocked)
 
   if player.beamModeDuration > 0 then
     player.beamModeDuration = math.max(0, player.beamModeDuration - dt)
-    if player.beamModeDuration == 0 then player.beamMode = "heal" end
+    if player.beamModeDuration == 0 then
+      if player.beamMode == "charm" then player.charmCharges = 0 end
+      player.beamMode = "heal"
+    end
   end
   player.superKickDuration = math.max(0, player.superKickDuration - dt)
 

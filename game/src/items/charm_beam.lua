@@ -5,12 +5,13 @@ local item = {
   name = "Charm beam",
   rarity = "rare",
   weight = 5,
-  description = "Charm creatures to attack each other for 10 seconds, then die.",
+  description = "Charm up to 5 creatures for 10 seconds; charmed creatures then die.",
   imagePath = "assets/images/dungeon-items/individual/" .. "purple_potion.png",
   soundEffectName = "Powerup",
   onCollect = function(pickup, context)
     context.player.beamMode = "charm"
     context.player.beamModeDuration = 10
+    context.player.charmCharges = 5
   end,
 }
 

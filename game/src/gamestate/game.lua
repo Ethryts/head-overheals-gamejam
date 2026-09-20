@@ -96,6 +96,7 @@ function game:update(dt)
   end
   for _, beam in ipairs(self.player.allBeams or {}) do
     beam:clipAgainstWorld(traceBeam, vector(self.player.x, self.player.y))
+    beam:updateImpact(dt, self.fx)
   end
   local dx, dy = self.player.x - oldX, self.player.y - oldY
   self.dustDistance = self.dustDistance + math.sqrt(dx * dx + dy * dy)

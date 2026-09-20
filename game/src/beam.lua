@@ -6,6 +6,8 @@ local Beam = {}
 Beam.__index = Beam
 
 ---@class Beam
+---@field impact? {position: HumpVector, angle: number} First world contact, with direction back along the beam.
+---@field impactCooldown? number Seconds until the next contact burst.
 function Beam:new(bottomLeft, direction)
 	local beam = {
 		bottomLeft = bottomLeft,
@@ -197,6 +199,7 @@ function Beam:getPoints()
 end
 
 function Beam:clipAgainstWorld(traceWorld, origin)
+	self.impact = nil
 	if origin and self.isActive then self.bottomLeft = origin end
 	if self.isActive then self.points = nil end
 	self.traceWorld = traceWorld
@@ -206,6 +209,10 @@ function Beam:clipAgainstWorld(traceWorld, origin)
 		local first, last = points[i - 1], points[i]
 		local hit = traceWorld(first, last, self.width / 2)
 		if hit then
+			self.impact = {
+				position = first + (last - first) * hit,
+				angle = math.atan2(first.y - last.y, first.x - last.x),
+			}
 			if hit > 0 then clipped[#clipped + 1] = first + (last - first) * hit end
 			break
 		end
@@ -213,6 +220,22 @@ function Beam:clipAgainstWorld(traceWorld, origin)
 	end
 	self.points = clipped
 	self.visual:update(self, 0)
+end
+
+---@param dt number
+---@param fx FxSystem
+function Beam:updateImpact(dt, fx)
+  if not self.isActive or not self.isVisible or not self.impact then
+    self.impactCooldown = 0
+    return
+  end
+  self.impactCooldown = (self.impactCooldown or 0) - dt
+  if self.impactCooldown <= 0 then
+    local contact = self.impact
+    fx:emit("beam_impact", contact.position.x, contact.position.y, {angle = contact.angle})
+    -- At most one burst per update, with no catch-up flood after a slow frame.
+    self.impactCooldown = 0.08
+  end
 end
 
 function Beam:draw()

@@ -19,6 +19,12 @@
 
 ---@type table<string, FxPreset>
 return {
+  beam_impact = {
+    count = 7, rate = 40, lifetime = {0.18, 0.32}, speed = {100, 190},
+    angle = math.pi, spread = 2.4, acceleration = {0, 65}, drag = 7,
+    spreadX = 1, spreadY = 1, layer = "air", shapes = {"line", "line", "dot", "sparkle"},
+    colors = {{0.9, 1, 0.95}, {0.35, 1, 0.7}, {0.08, 0.45, 0.3}}, shrink = true,
+  },
   impact = {
     count = 22, rate = 12, lifetime = {0.22, 0.45}, speed = {160, 270},
     angle = math.pi, spread = 2.2, acceleration = {0, 130}, drag = 5,

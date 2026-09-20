@@ -156,3 +156,33 @@ assert(draws == priorDraws, "A fully blocked beam must not draw stale geometry")
 straight:destroy()
 curved:destroy()
 print("Beam tests passed: clipping, width, curved paths, healing occlusion, release and corrected origin")
+
+local contactBeam = makeBeam()
+local bursts = 0
+local fx = {emit = function(_, name, x, y, options)
+  assert(name == "beam_impact" and math.abs(x - 75) < 1e-7 and y == 0)
+  assert(math.cos(options.angle) < -0.99, "Sparks spray back from the pillar")
+  bursts = bursts + 1
+end}
+contactBeam:clipAgainstWorld(trace)
+contactBeam:updateImpact(1/60, fx)
+assert(bursts == 1, "First contact emits immediately")
+for _ = 1, 60 do
+  contactBeam:clipAgainstWorld(trace)
+  contactBeam:updateImpact(1/60, fx)
+end
+assert(bursts >= 11 and bursts <= 14, "Sustained contact has a bounded emission rate")
+local before = bursts
+contactBeam:updateImpact(10, fx)
+assert(bursts == before + 1, "Slow frames cannot cause a burst flood")
+contactBeam:clipAgainstWorld(function() return nil end)
+contactBeam:updateImpact(0.01, fx)
+assert(bursts == before + 1, "Aiming clear stops emission")
+contactBeam:clipAgainstWorld(trace)
+contactBeam:updateImpact(0.01, fx)
+assert(bursts == before + 2, "Recontact emits immediately")
+contactBeam:startRelease()
+contactBeam:updateImpact(1, fx)
+assert(bursts == before + 2, "Released beams stop emitting")
+contactBeam:destroy()
+print("Beam impact tests passed: contact position, direction, rate limit, recontact and release")

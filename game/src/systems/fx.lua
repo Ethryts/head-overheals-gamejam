@@ -118,7 +118,7 @@ local function spawn(self, preset, x, y, options, age)
   self.particles[#self.particles + 1] = p
 end
 
----@param name string Preset ID: sparks, impact, swing, dust, embers, healing, pickup.
+---@param name string Preset ID: sparks, impact, beam_impact, swing, dust, embers, healing, pickup.
 ---@param x number World position.
 ---@param y number
 ---@param options? FxOptions

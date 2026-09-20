@@ -102,4 +102,37 @@ function StructureSystem:resolveMovement(actor, oldX, oldY, loadAt, stopOnCollis
   return collided
 end
 
+-- Slab intersection against a pillar footprint expanded by shot radius.
+local function traceBox(origin, destination, left, top, right, bottom)
+  local enter, leave = 0, 1
+  local function axis(start, delta, low, high)
+    if delta == 0 then return start >= low and start <= high end
+    local a, b = (low - start) / delta, (high - start) / delta
+    if a > b then a, b = b, a end
+    enter, leave = math.max(enter, a), math.min(leave, b)
+    return enter <= leave
+  end
+  if axis(origin.x, destination.x - origin.x, left, right)
+      and axis(origin.y, destination.y - origin.y, top, bottom) then
+    return enter
+  end
+end
+
+---@param origin HumpVector
+---@param destination HumpVector
+---@param radius number
+---@return number? fraction Earliest pillar impact along the segment.
+function StructureSystem:traceProjectile(origin, destination, radius)
+  local candidates = self.world:hash():inSameCells(
+    math.min(origin.x, destination.x) - radius, math.min(origin.y, destination.y) - radius,
+    math.max(origin.x, destination.x) + radius, math.max(origin.y, destination.y) + radius)
+  local earliest
+  for shape in pairs(candidates) do
+    local left, top, right, bottom = shape:bbox()
+    local hit = traceBox(origin, destination, left - radius, top - radius, right + radius, bottom + radius)
+    if hit and (not earliest or hit < earliest) then earliest = hit end
+  end
+  return earliest
+end
+
 return StructureSystem

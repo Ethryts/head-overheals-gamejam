@@ -105,7 +105,7 @@ assert(imageLoads == 15)
 local vector = require("lib.hump.vector")
 local behavior = require("behavior")
 local movers = CreatureSystem.new()
-local chaser = movers:create("death_slime", 0, 0, {speed = 10, behavior = behavior.chase})
+local chaser = movers:create("death_slime", 0, 0, {speed = 10, movementBehavior = behavior.chase})
 local stationary = movers:create("red_cap", 0, 0, {speed = 10})
 local context = {
   knight = {position = vector(30, 40)},
@@ -140,14 +140,14 @@ movers:update(1)
 assert(chaser.position == vector(3, 15), "Omitted context must stop")
 context.knight = {position = vector(3, 100)}
 movers:update(0.1, context)
-chaser.behavior = behavior.idle
+chaser.movementBehavior = behavior.idle
 movers:update(1, context)
 assert(chaser.position == vector(3, 16) and chaser.velocity == vector(0, 0),
   "Switching to idle clears previous movement")
 
 local whole, split = CreatureSystem.new(), CreatureSystem.new()
-local wholeCreature = whole:create("death_slime", 0, 0, {speed = 10, behavior = behavior.chase})
-local splitCreature = split:create("death_slime", 0, 0, {speed = 10, behavior = behavior.chase})
+local wholeCreature = whole:create("death_slime", 0, 0, {speed = 10, movementBehavior = behavior.chase})
+local splitCreature = split:create("death_slime", 0, 0, {speed = 10, movementBehavior = behavior.chase})
 local target = {knight = {position = vector(100, 0)}}
 whole:update(1, target)
 split:update(0.5, target)
@@ -222,7 +222,7 @@ local x = draws[1][2]:getViewport()
 assert(x == 0, "New run starts at frame one")
 game.knight.position = vector(10, 0)
 game.healer = {position = vector(-10, 0)}
-local follower = game.creatures:create("death_slime", 0, 0, {speed = 5, behavior = behavior.chase})
+local follower = game.creatures:create("death_slime", 0, 0, {speed = 5, movementBehavior = behavior.chase})
 love.update(1)
 assert(follower.position == vector(5, 0), "Game forwards the knight in context")
 love.keypressed("escape")
@@ -300,7 +300,7 @@ assert(#created == 0, "Dropdown selection must not spawn")
 clickInGame(200, 200)
 assert(#created == 1 and created[1].kind == "bloodshot_eye")
 assert((created[1].position - vector(200, 200)):len() < 1e-9)
-assert(created[1].behavior == behavior.chase)
+assert(created[1].movementBehavior == behavior.ranged)
 clickInGame(700, 30)
 clickInGame(700, 150)
 assert(sandbox.selectedCreature.id == "ochre_jelly")

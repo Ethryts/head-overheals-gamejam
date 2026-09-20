@@ -132,10 +132,13 @@ function Player.update(player, dt)
 end
 
 -- Called by the game after correcting the healer's position against pillars.
-function Player.resolveKick(player, creatures)
+---@param player Player
+---@param creatures CreatureSystem
+---@param projectiles? ProjectileSystem
+function Player.resolveKick(player, creatures, projectiles)
   if not player.kickRequested then return false end
   player.kickRequested = false
-  return player.kick:tryActivate(player.x, player.y, player.kickDirection, creatures)
+  return player.kick:tryActivate(player.x, player.y, player.kickDirection, creatures, projectiles)
 end
 
 function Player.resume(player)

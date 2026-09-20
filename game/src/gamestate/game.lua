@@ -1,6 +1,7 @@
 local Gamestate = require("gamestate.deps").Gamestate
 local UI = require("gamestate.ui")
 local CreatureSystem = require("systems.creature")
+local ProjectileSystem = require("systems.projectile")
 local MapSystem = require("systems.map")
 ---@class GameContext
 ---@field player? Player
@@ -16,6 +17,7 @@ local MapSystem = require("systems.map")
 ---@field knight Knight
 ---@field map MapSystem
 ---@field creatures CreatureSystem
+---@field projectiles ProjectileSystem
 ---@field pickups Pickups
 ---@field spawner Spawner
 ---@field timer number Seconds since the game started.
@@ -51,6 +53,7 @@ function game:enter(previous)
     speed = 60,
     scale = 2,
   })
+  self.projectiles = ProjectileSystem.new()
 end
 
 function game:resume(previous)
@@ -74,31 +77,41 @@ function game:update(dt)
   self.map:resolveMovement(self.player, oldX, oldY)
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
   self.pickups:checkCollected(self.player, self.knight, self)
-  Player.resolveKick(self.player, self.creatures)
+  Player.resolveKick(self.player, self.creatures, self.projectiles)
 
   self.knight:update(dt, self.creatures, game.player)
 
-  if self.knight.dead then
-		Gamestate.soundEffectsSystem:stopAllSoundEffects()
-		Gamestate.soundEffectsSystem:playSoundEffect("Death")
-    return self:finish({ title = "You lost", message = "The knight has fallen." })
-  elseif self.knight.overhealed then
-		Gamestate.soundEffectsSystem:stopAllSoundEffects()
-		Gamestate.soundEffectsSystem:playSoundEffect("HeadOverhealed")
-    return self:finish({ title = "Overhealed", message = "The knight's head exploded." })
-  end
 
   self.spawner:update(dt, self.player.x, self.player.y)
-	Gamestate.musicSystem:receiveHealthUpdate(self.knight:GetHealthPercentage())
 
   ---@type CreatureSystemContext
   local context = {
-    knight = self.knight, healer = self.healer,
+    knight = self.knight,
+    projectiles = self.projectiles,
+    healer = self.healer,
     resolveKnockback = function(creature, destination)
       return self.map:resolveKnockback(creature.position, destination, 6 * creature.scale)
     end,
   }
   self.creatures:update(dt, context)
+  self.projectiles:update(dt, {
+    knight = self.knight,
+    traceWorld = function(origin, destination, radius)
+      return self.map:traceProjectile(origin, destination, radius)
+    end,
+  })
+
+  if self.knight.dead then
+    Gamestate.soundEffectsSystem:stopAllSoundEffects()
+    Gamestate.soundEffectsSystem:playSoundEffect("Death")
+    return self:finish({ title = "You lost", message = "The knight has fallen." })
+  elseif self.knight.overhealed then
+    Gamestate.soundEffectsSystem:stopAllSoundEffects()
+    Gamestate.soundEffectsSystem:playSoundEffect("HeadOverhealed")
+    return self:finish({ title = "Overhealed", message = "The knight's head exploded." })
+  end
+
+  Gamestate.musicSystem:receiveHealthUpdate(self.knight:GetHealthPercentage())
   -- When finished: return self:finish({ title = "Finished", message = "..." })
 end
 
@@ -113,6 +126,7 @@ function game:drawWorld()
   self.creatures:draw()
   self.knight:draw()
   Player.draw(self.player)
+  self.projectiles:draw()
   self.map:drawForeground(playerFeetY)
   love.graphics.pop()
 end
@@ -127,6 +141,7 @@ end
 
 function game:leave()
   self.pickups:destroy()
+  self.projectiles:destroy()
   HC.remove(self.player.shape)
   self.map:destroy()
 end

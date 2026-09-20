@@ -131,7 +131,7 @@ assert(miss.cooldownRemaining == Kick.tuning.cooldown, "A miss also consumes coo
 
 local function travel(steps)
   local system = CreatureSystem.new()
-  local creature = system:create("death_slime", 0, 0, {speed = 40, behavior = behavior.chase})
+  local creature = system:create("death_slime", 0, 0, {speed = 40, movementBehavior = behavior.chase})
   system:applyKnockback(creature, vector(1, 0), 180, 0.25)
   for _, dt in ipairs(steps) do system:update(dt, {knight = {position = vector(-1000, 0)}}) end
   return creature
@@ -142,7 +142,7 @@ near(travel({0.5}).position.x, 170, "Chase consumes only post-knockback time")
 near(travel({0.1, 0.1, 0.3}).position.x, 170)
 near(travel({0}).position.x, 0)
 local interruptions = CreatureSystem.new()
-local blocked = interruptions:create("death_slime", 0, 0, {speed = 60, behavior = behavior.chase})
+local blocked = interruptions:create("death_slime", 0, 0, {speed = 60, movementBehavior = behavior.chase})
 local hits, resolutions = 0, 0
 local context = {
   knight = {position = vector(0, 0), takeDamage = function() hits = hits + 1 end},
@@ -213,7 +213,7 @@ game.pickups:destroy(); game.pickups.batchSize = 0
 game.knight.attackCooldown = 10
 game.knight.idleTimer = 100
 game.creatures = CreatureSystem.new()
-local threat = game.creatures:create("death_slime", 10, 0, {speed = 60, behavior = behavior.chase})
+local threat = game.creatures:create("death_slime", 10, 0, {speed = 60, movementBehavior = behavior.chase})
 local hp = game.knight.health
 keys = {f = true, right = true}
 love.update(0.01)

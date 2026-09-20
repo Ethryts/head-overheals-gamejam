@@ -2,12 +2,14 @@ local vector = require("lib.hump.vector")
 local animations = require("systems.monster_animations")
 local Gamestate = require("gamestate.deps").Gamestate
 local behavior = require("behavior")
+local attacks = require("attacks")
 
 ---@class CreatureActor
 ---@field position HumpVector Current position in the same game coordinates as creatures.
 
 ---@class CreatureSystemContext
----@field knight? CreatureActor Live knight object; chase follows its position. Nil means no target.
+---@field projectiles? ProjectileSystem Ranged attacks spawn into this system.
+---@field knight? CreatureActor|ProjectileTarget Live knight object; chase follows its position. Nil means no target.
 ---@field healer? CreatureActor Live healer object, available to behaviors; idle/chase do not target it.
 ---@field resolveKnockback? fun(creature: Creature, destination: HumpVector): HumpVector, boolean Returns corrected position and whether a structure was hit.
 
@@ -18,14 +20,18 @@ local behavior = require("behavior")
 ---@field elapsed number
 ---@field blocked boolean
 
----@class CreatureBehavior
+---@class CreatureMovementBehavior
 ---@field update fun(creature: Creature, dt: number, context: CreatureSystemContext) Sets velocity; CreatureSystem applies movement.
+
+---@class CreatureAttackBehavior
+---@field update fun(creature: Creature, dt: number, context: CreatureSystemContext, canAttack: boolean) Advances cooldown and attacks only when permitted by the system.
 
 ---@class Attack
 ---@field type "melee"|"ranged"
 ---@field damage number
 ---@field cooldown number Seconds between attacks.
 ---@field range? number
+---@field projectile? { speed?: number, radius?: number, lifespan?: number } Ranged shot tuning.
 ---@field animations? table<string, Anim8Animation>
 
 ---@class Creature
@@ -38,17 +44,19 @@ local behavior = require("behavior")
 ---@field animations table<string, Anim8Animation>
 ---@field scale number
 ---@field attack? Attack
----@field behavior CreatureBehavior Shared behavior module; defaults to behavior.idle.
+---@field movementBehavior CreatureMovementBehavior Shared movement module.
+---@field attackBehavior CreatureAttackBehavior Shared attack module; state stays on the creature.
 ---@field knockback? CreatureKnockback Overrides movement and interrupts attacks.
 ---@field attackCooldownRemaining number
 
 ---@class CreatureOptions
+---@field attackBehavior? CreatureAttackBehavior Defaults to attacks.projectile for ranged attacks, otherwise attacks.melee.
 ---@field health? number Defaults to 1.
 ---@field speed? number Defaults to 0.
 ---@field scale? number Defaults to 1.
 ---@field frameDuration? number Seconds per frame; defaults to 0.2.
----@field behavior? CreatureBehavior Defaults to behavior.idle.
----@field attack? Attack defaults to a basic melee attack (1 damage, 1s cooldown, 24 range).
+---@field movementBehavior? CreatureMovementBehavior Defaults to behavior.ranged for ranged attacks, otherwise behavior.idle.
+---@field attack? Attack Bloodshot Eyes default to ranged; other creatures default to melee.
 
 ---@class CreatureSystem
 ---@field private creatures Creature[]
@@ -56,6 +64,8 @@ local CreatureSystem = {}
 CreatureSystem.__index = CreatureSystem
 
 local DEFAULT_ATTACK = { type = "melee", damage = 1, cooldown = 1, range = 24 }
+local EYE_ATTACK = { type = "ranged", damage = 1, cooldown = 1.5, range = 300,
+  projectile = { speed = 240, radius = 4, lifespan = 3 } }
 
 ---@return CreatureSystem
 function CreatureSystem.new()
@@ -70,6 +80,7 @@ end
 function CreatureSystem:create(monsterId, x, y, options)
   options = options or {}
   local image, clips = animations.loadMonster(monsterId, options.frameDuration)
+  local attack = options.attack or (monsterId == "bloodshot_eye" and EYE_ATTACK or DEFAULT_ATTACK)
   ---@type Creature
   local creature = {
     kind = monsterId,
@@ -80,27 +91,13 @@ function CreatureSystem:create(monsterId, x, y, options)
     image = image,
     animations = clips,
     scale = options.scale or 1,
-    behavior = options.behavior or behavior.idle,
-    attack = options.attack or DEFAULT_ATTACK,
+    movementBehavior = options.movementBehavior or (attack.type == "ranged" and behavior.ranged or behavior.idle),
+    attack = attack,
+    attackBehavior = options.attackBehavior or (attack.type == "ranged" and attacks.projectile or attacks.melee),
     attackCooldownRemaining = 0,
   }
   self.creatures[#self.creatures + 1] = creature
   return creature
-end
-
-local function tryAttack(creature, context)
-  local target = context.knight
-  if not (creature.attack and target and target.position and type(target.takeDamage) == "function") then
-    return
-  end
-  
-  local range = creature.attack.range or DEFAULT_ATTACK.range
-  local distance = (target.position - creature.position):len()
-
-  if distance <= range and creature.attackCooldownRemaining <= 0 then
-    target:takeDamage(creature.attack.damage)
-    creature.attackCooldownRemaining = creature.attack.cooldown
-  end
 end
 
 ---@param creature Creature
@@ -144,16 +141,20 @@ end
 ---@param context? CreatureSystemContext References to the current knight and healer; omitted means neither is present.
 function CreatureSystem:update(dt, context)
   context = context or {}
+  local canAttack = {}
+  -- Resolve every movement before any attack reads the resulting positions.
   for _, creature in ipairs(self.creatures) do
     local wasKnockedBack = creature.knockback ~= nil
     local activeDt = wasKnockedBack and updateKnockback(creature, dt, context) or dt
-    creature.attackCooldownRemaining = math.max(0, creature.attackCooldownRemaining - dt)
-    if not wasKnockedBack or activeDt > 1e-9 then
-      creature.behavior.update(creature, activeDt, context)
+    canAttack[creature] = not wasKnockedBack or activeDt > 1e-9
+    if canAttack[creature] then
+      creature.movementBehavior.update(creature, activeDt, context)
       creature.position = creature.position + creature.velocity * activeDt
-      tryAttack(creature, context)
     end
     creature.animations.idle:update(dt)
+  end
+  for _, creature in ipairs(self.creatures) do
+    creature.attackBehavior.update(creature, dt, context, canAttack[creature] == true)
   end
 end
 

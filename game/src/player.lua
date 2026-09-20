@@ -28,8 +28,8 @@ local HealthBar = require("src.health_bar")
 local Player = {}
 Player.__index = Player
 
-local PLAYER_SCALE = 4
-local PLAYER_HEAD_SCALE = 4
+local PLAYER_SCALE = 3
+local PLAYER_HEAD_SCALE = 3
 local PLAYER_MAX_HEALTH = 100
 local PLAYER_HEAL_SPEED = 10
 ---@param x? number Defaults to 100.

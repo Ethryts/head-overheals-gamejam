@@ -35,8 +35,8 @@ local OVERHEAL_RATIO   = 2.0 -- past this, his head explodes
 local STARTING_HEALTH  = 30
 local STARTING_MAX_HEALTH  = 100 -- normal healthy cap
 local STARTING_HEAL_SPEED  = 1
-local KNIGHT_SCALE      = 4
-local KNIGHT_HEAD_SCALE = 4
+local KNIGHT_SCALE      = 3
+local KNIGHT_HEAD_SCALE = 3
 
 local function rollIdleDuration()
   if math.random() < IDLE_SHORT_CHANCE then

@@ -8,6 +8,14 @@ local behavior = require("behavior")
 ---@field scale? number Creature draw scale. Defaults to 2.
 
 ---@class Spawner
+---@field creatureSystem CreatureSystem
+---@field interval number Seconds between spawns.
+---@field margin number Distance beyond the screen edge in pixels.
+---@field pool { id: string, weight?: number }[]
+---@field speed number Spawned creature speed.
+---@field scale number Spawned creature draw scale.
+---@field timer number Seconds until the next spawn.
+---@field enabled boolean
 local Spawner = {}
 Spawner.__index = Spawner
 
@@ -19,6 +27,7 @@ local DEFAULT_POOL = {
 
 ---@param creatureSystem CreatureSystem
 ---@param options? SpawnerOptions
+---@return Spawner
 function Spawner.new(creatureSystem, options)
     options = options or {}
     local self = setmetatable({}, Spawner)
@@ -36,6 +45,7 @@ function Spawner.new(creatureSystem, options)
     return self
 end
 
+---@param enabled boolean
 function Spawner:setEnabled(enabled)
     self.enabled = enabled
 end
@@ -72,6 +82,7 @@ local function randomOffscreenPoint(margin)
     end
 end
 
+---@return Creature
 function Spawner:spawnOne()
     local id = pickFromPool(self.pool)
     local x, y = randomOffscreenPoint(self.margin)
@@ -83,6 +94,7 @@ function Spawner:spawnOne()
     })
 end
 
+---@param dt number Elapsed seconds.
 function Spawner:update(dt)
     if not self.enabled then return end
 

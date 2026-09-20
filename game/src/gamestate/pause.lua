@@ -1,7 +1,10 @@
 local Gamestate = require("gamestate.deps").Gamestate
 local UI = require("gamestate.ui")
+---@class PauseState
+---@field game GameState Active game while the pause state is entered.
 local pause = {}
 
+---@param previous GameState
 function pause:enter(previous)
     self.game = previous
     self.ui = UI.new()

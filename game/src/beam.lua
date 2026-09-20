@@ -224,9 +224,7 @@ end
 
 function Beam:containsPoint(point, fuzziness)
 
-	print('im here', point, fuzziness, self.isVisible)
 	if not self.isVisible then
-		print ('not visible')
 		return false
 	end
 

@@ -3,11 +3,22 @@ local vector = require("lib.hump.vector")
 local PlayerAnimation = require("src.player_animation")
 local Beam = require("src.beam")
 
+---@class Player
+---@field x number World-space horizontal position.
+---@field y number World-space vertical position.
+---@field speed number World pixels per second.
+---@field direction 1|-1 Facing direction, preserved while idle.
+---@field animation PlayerAnimation
+---@field input BatonInput
+---@field shape? HCShape Assigned by the game when collision is enabled.
 local Player = {}
 Player.__index = Player
 
 local PLAYER_SCALE = 4
 local PLAYER_HEAD_SCALE = 4
+---@param x? number Defaults to 100.
+---@param y? number Defaults to 100.
+---@return Player
 function Player.new(x, y)
   local player = setmetatable({}, Player)
 
@@ -49,6 +60,8 @@ function Player.new(x, y)
   return player
 end
 
+---@param player Player
+---@param dt number Elapsed seconds.
 function Player.update(player, dt)
   player.input:update()
 
@@ -100,6 +113,7 @@ function Player.update(player, dt)
 	end
 end
 
+---@param player Player
 function Player.draw(player)
   player.animation:draw(player.x, player.y, player.direction)
 	for _, beam in ipairs(player.allBeams) do
@@ -112,7 +126,6 @@ function Player.doesBeamOverlapWithPoint(player, point, radius)
 		return false
 	end
 	for _, beam in ipairs(player.allBeams) do
-		print ("Checking beam at position: ", beam.bottomLeft.x, beam.bottomLeft.y, " with tip at: ", beam.tip.x, beam.tip.y)
 		if beam:containsPoint(point, radius) then
 			return true
 		end

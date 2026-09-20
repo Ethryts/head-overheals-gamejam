@@ -1,12 +1,17 @@
 local UI = require("gamestate.ui")
 local Knight = require("src.knight")
 
+---@class KnightHealthTest: DebugTest
+---@field knight? Knight
+---@field health { value: number, min: number, max: number }
 local test = {
   label = "Set knight health",
   footer = "Drag slider / +/-: set health     Esc: test menu     F3: exit debug     F4: HUD",
 }
 test.__index = test
 
+---@param game? GameContext
+---@return KnightHealthTest
 function test.new(game)
   local knight = game and game.knight
   return setmetatable({

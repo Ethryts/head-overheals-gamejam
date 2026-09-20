@@ -2,8 +2,24 @@ local Gamestate = require("gamestate.deps").Gamestate
 local UI = require("gamestate.ui")
 local hud = require("debug.hud")
 local tests = require("debug.tests")
+---@class DebugTest
+---@field update fun(self: DebugTest, dt: number)
+---@field draw fun(self: DebugTest)
+---@field mousepressed? fun(self: DebugTest, x: number, y: number, button: integer)
+---@field footer? string
+
+---@class DebugTestDefinition
+---@field label string
+---@field new fun(game?: GameContext): DebugTest
+
+---@class DebugState
+---@field game? GameContext Active game context, or an empty context when opened from a menu.
+---@field activeTest? DebugTest
+---@field menuOpen boolean
+---@field debugLabel string
 local debugState = {}
 
+---@param previous? GameContext|PauseState
 function debugState:enter(previous)
   self.game = previous and (previous.game or previous)
   self.ui = UI.new()
@@ -12,6 +28,7 @@ function debugState:enter(previous)
   self.debugLabel = "Test menu"
 end
 
+---@param definition DebugTestDefinition
 function debugState:selectTest(definition)
   self.activeTest = definition.new(self.game)
   self.menuOpen = false

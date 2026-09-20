@@ -13,7 +13,25 @@
   Click in the scene for a burst; use **Toggle emitter** to start/stop emission.
 - **Esc** returns to the test menu; Esc again exits debug.
 
-The regular game is frozen while debug is open. Each selected test starts
+## Demo recording
+
+Choose **Demo staging** from F3. From a menu, **Start demo game** creates a
+fresh run; during a game it edits that run. The scene stays paused while staging.
+
+- **Stats** adjusts knight health/max health/speed, healer speed/healing rate,
+  and charge regeneration. Refill charge or restore safe knight health instantly.
+- **Spawn** selects any creature and a count (1–20). Click the unobscured world
+  to place one creature or a group around that point, relative to the camera.
+- **Scene** places the knight/healer, clears creatures and projectiles, toggles
+  automatic spawning (off initially), and hides the game HUD for clean shots.
+- **Play demo** resumes the game and hides diagnostic text. Press F3 and choose
+  Demo staging again to adjust the next shot. Settings persist for this run only.
+
+Staging edits affect the real game, including health, deaths and creature AI.
+Moving the healer also moves the camera; placing the knight resets his patrol anchor.
+Automatic spawning resumes its difficulty clock when enabled again.
+
+The regular game is frozen while debug is open. Other selected tests start
 fresh; debug creatures never enter the regular game's CreatureSystem.
 The knight stub has a position and a visible health counter. Bloodshot Eyes
 stop at firing range and shoot at it; other creatures use melee attacks. This

@@ -33,6 +33,7 @@ local vector = require("lib.hump.vector")
 ---@field hud GameHud
 ---@field healResource HealResource
 ---@field score integer Coins collected during the current run.
+---@field demo? DemoSettings Debug staging settings, reset on a new run.
 local game = {isMenu = false}
 local Player = require("src.player")
 local HC = require("lib.HC")
@@ -43,6 +44,7 @@ local Hud = require("ui.hud")
 local HealResource = require("src.heal_resource")
 
 function game:enter(previous)
+  self.demo = nil
   self.score = 0
   self.overhealSequenceStarted = false
   self.timer = 0
@@ -159,7 +161,9 @@ function game:update(dt)
   end
 
 
-  self.spawner:update(dt, self.player.x, self.player.y)
+  if not self.demo or self.demo.autoSpawn then
+    self.spawner:update(dt, self.player.x, self.player.y)
+  end
 
   local function resolveCreatureMovement(creature, destination)
     return self.map:resolveKnockback(creature.position, destination, 6 * creature.scale)
@@ -261,6 +265,7 @@ function game:drawScene()
 end
 
 function game:drawUI()
+  if self.demo and self.demo.hideHud then return end
   UI.draw(self.ui)
   self.hud:draw(self)
   UI.healBar(self.healResource)

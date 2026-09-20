@@ -7,6 +7,7 @@ local tests = require("debug.tests")
 ---@field draw fun(self: DebugTest)
 ---@field mousepressed? fun(self: DebugTest, x: number, y: number, button: integer)
 ---@field footer? string
+---@field hideDebugHud? boolean Hide the diagnostic text when entering a staging tool.
 ---@field destroy? fun(self: DebugTest) Releases resources when leaving the test.
 
 ---@class DebugTestDefinition
@@ -36,7 +37,7 @@ function debugState:selectTest(definition)
   self.menuOpen = false
   self.debugLabel = definition.label
   self.ui = UI.new()
-  hud.visible = true
+  hud.visible = not self.activeTest.hideDebugHud
 end
 
 function debugState:update(dt)

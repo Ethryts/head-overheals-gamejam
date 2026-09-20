@@ -1,6 +1,7 @@
 local deps = require("gamestate.deps")
 local project = require("project")
 local viewport = require("src.viewport")
+local HealthBar = require("src.health_bar")
 
 local ui = {
     width = project.width,
@@ -9,6 +10,7 @@ local ui = {
     buttonHeight = 44,
 }
 local fonts
+local healBarWidget
 
 function ui.new()
     if not fonts then
@@ -16,6 +18,9 @@ function ui.new()
             title = love.graphics.newFont(36),
             body = love.graphics.newFont(18),
         }
+    end
+    if not healBarWidget then
+      healBarWidget = HealthBar.new({ width = 200, height = 16, offsetY = 0 })
     end
     -- Each visit starts with a fresh SUIT instance and an empty draw queue.
     return deps.suit.new()
@@ -54,6 +59,14 @@ function ui.footer(text)
     love.graphics.setFont(fonts.body)
     love.graphics.setColor(0.64, 0.70, 0.73)
     love.graphics.printf(text, 24, ui.height - 48, ui.width - 48, "center")
+end
+
+--@param healResource HealResource
+function ui.healBar(healResource)
+  love.graphics.setFont(fonts.body)
+  love.graphics.setColor(0.93, 0.95, 0.96)
+  love.graphics.print("Heal charge", 24, ui.height - 76)
+  healBarWidget:draw(124, ui.height - 60, healResource:getRatio())
 end
 
 function ui.draw(instance)

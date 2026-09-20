@@ -59,6 +59,11 @@ function game:enter(previous)
 
   self.pickups = Pickups.new(self.player)
   self.pickups:spawn(15)
+  self.map.structureSystem.onBreak = function(structure)
+    self.pickups:create(require("src.items.gold_coin"), structure.x, structure.y)
+    self.fx:emit("dust", structure.x, structure.y)
+    self.fx:emit("wood_break", structure.x, structure.y - (structure.lift or 0), {depth = structure.y})
+  end
 
   self.creatures = CreatureSystem.new(self.fx)
   self.creatures:create("death_slime", UI.width / 2, UI.height / 2, {
@@ -108,7 +113,7 @@ function game:update(dt)
     self.fx:emit("dust", self.player.x, self.player.animation:getFeetY(self.player.y))
     self.dustDistance = self.dustDistance % 24
   end
-  if Player.resolveKick(self.player, self.creatures, self.projectiles, self.fx) then
+  if Player.resolveKick(self.player, self.creatures, self.projectiles, self.fx, self.map:getVisibleStructures()) then
     self.fx:emit("dust", self.player.x, self.player.animation:getFeetY(self.player.y))
   end
 
@@ -137,6 +142,7 @@ function game:update(dt)
     resolveKnockback = resolveCreatureMovement,
   }
   self.creatures:update(dt, context)
+  self.map:updateStructures(dt, self.creatures:getAll())
   self.projectiles:update(dt, {
     fx = self.fx,
     knight = self.knight,
@@ -155,6 +161,7 @@ function game:update(dt)
     self.healingEmitter:stop()
     self.healingEmitter = nil
   end
+  self.map:updateStructureEffects(self.fx)
   self.fx:update(dt)
   self.hud:update(dt, self)
 

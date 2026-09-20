@@ -52,7 +52,8 @@ end
 ---@field size number Chunk side length in world pixels.
 ---@field chunkX integer
 ---@field chunkY integer
----@field random love.RandomGenerator Private seeded generator for structure placement.
+---@field random love.RandomGenerator Private seeded generator for pillar placement.
+---@field propRandom love.RandomGenerator Independent seeded generator for prop placement.
 
 ---@class MapOptions
 ---@field seed? integer|string Defaults to 1; the same seed recreates the same map.
@@ -121,6 +122,7 @@ function MapSystem:createChunk(cx, cy)
       chunkX = cx,
       chunkY = cy,
       random = love.math.newRandomGenerator(chunkSeed(self.seed, cx, cy, "structures")),
+      propRandom = love.math.newRandomGenerator(chunkSeed(self.seed, cx, cy, "props")),
     })
   end
   return chunk
@@ -137,8 +139,14 @@ function MapSystem:update(x, y, viewWidth, viewHeight)
   -- Evict first so a teleport doesn't temporarily retain both distant regions.
   for id, chunk in pairs(self.chunks) do
     if chunk.x < keep.left or chunk.x > keep.right or chunk.y < keep.top or chunk.y > keep.bottom then
-      releaseChunk(chunk)
-      self.chunks[id] = nil
+      local airborne = false
+      for _, structure in ipairs(chunk.structures) do
+        if structure.flight then airborne = true; break end
+      end
+      if not airborne then
+        releaseChunk(chunk)
+        self.chunks[id] = nil
+      end
     end
   end
   local load = bounds(x, y, viewWidth, viewHeight, self.loadMargin, self.chunkSize)
@@ -216,6 +224,42 @@ function MapSystem:traceProjectile(origin, destination, radius)
   return self.structureSystem:traceProjectile(origin, destination, radius)
 end
 
+-- Stop offscreen fires before allocating emitters for newly visible braziers.
+function MapSystem:updateStructureEffects(fx)
+  local visible = {}
+  for _, chunk in ipairs(self.visible) do visible[chunk] = true end
+  for _, chunk in pairs(self.chunks) do
+    if not visible[chunk] then
+      for _, structure in ipairs(chunk.structures) do structure:updateEffects(fx, false) end
+    end
+  end
+  for _, chunk in ipairs(self.visible) do
+    for _, structure in ipairs(chunk.structures) do structure:updateEffects(fx, true) end
+  end
+end
+
+-- Snapshot active throws before tracing, since traces can stream new chunks.
+function MapSystem:updateStructures(dt, creatures)
+  if not self.structureSystem or dt <= 0 then return end
+  local flying = {}
+  for _, chunk in pairs(self.chunks) do
+    for _, structure in ipairs(chunk.structures) do
+      if structure.flight then flying[#flying + 1] = structure end
+    end
+  end
+  table.sort(flying, function(a, b)
+    if a.y == b.y then return a.x < b.x end
+    return a.y < b.y
+  end)
+  for _, structure in ipairs(flying) do
+    structure:updateFlight(dt, function(origin, destination, radius)
+      local wall = self:traceProjectile(origin, destination, radius)
+      local creature = self.structureSystem:traceCreatures(origin, destination, radius, creatures or {})
+      return wall and creature and math.min(wall, creature) or wall or creature
+    end)
+  end
+end
+
 -- Caller applies the world/camera transform. No generation occurs during draw.
 function MapSystem:drawFloor()
   love.graphics.push("all")
@@ -254,9 +298,18 @@ end
 
 ---@return MapStructure[]
 function MapSystem:getVisibleStructures()
-  local structures = {}
+  local structures, included = {}, {}
   for _, chunk in ipairs(self.visible) do
+    included[chunk] = true
     for _, structure in ipairs(chunk.structures) do structures[#structures + 1] = structure end
+  end
+  -- A throw can leave its owning chunk while still being visible on screen.
+  for _, chunk in pairs(self.chunks) do
+    if not included[chunk] then
+      for _, structure in ipairs(chunk.structures) do
+        if structure.flight then structures[#structures + 1] = structure end
+      end
+    end
   end
   return structures
 end

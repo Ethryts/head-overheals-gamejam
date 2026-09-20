@@ -2,19 +2,19 @@ local HC = require("lib.HC")
 local Structure = require("src.structure")
 
 ---@class StructureImpact
----@field x number World-space contact point on the pillar footprint.
+---@field x number World-space contact point on the structure footprint.
 ---@field y number
----@field normalX number Outward unit normal, pointing away from the pillar.
+---@field normalX number Outward unit normal, pointing away from the structure.
 ---@field normalY number
 
 ---@class StructureSystem
----@field world table Private HC world containing only this map's pillars.
+---@field world table Private HC world containing only this map's structures.
 ---@field scale number
 local StructureSystem = {}
 StructureSystem.__index = StructureSystem
 
 function StructureSystem.new(scale)
-  return setmetatable({ world = HC.new(), scale = scale or 4 }, StructureSystem)
+  return setmetatable({ world = HC.new(), scale = scale or 4, broken = {} }, StructureSystem)
 end
 
 -- HC retains empty spatial-hash cells after removal and neighbor queries.
@@ -48,6 +48,32 @@ function StructureSystem:createChunk(context)
       local clearSpawn = math.abs(x) < 48 * self.scale and math.abs(y) < 48 * self.scale
       if roll <= 55 and not clearSpawn then
         result[#result + 1] = Structure.new(kind, x, y, self.scale, self.world)
+      end
+    end
+  end
+  -- Props use their own RNG channel, leaving the pillar layout untouched.
+  local random = context.propRandom
+  local propKinds = { "crate", "barrel", "brazier" }
+  local offsets = { {10, 28}, {10, 42}, {22, 18} }
+  for row = 0, cells - 1 do
+    for column = 0, cells - 1 do
+      local roll = random:random(1, 100)
+      local count = random:random(1, 3)
+      local mirror = random:random(0, 1) == 1
+      for i, offset in ipairs(offsets) do
+        local kind = propKinds[random:random(1, i == 1 and 3 or 2)]
+        local x = context.x + column * cellSize + (mirror and 64 - offset[1] or offset[1]) * self.scale
+        local y = context.y + row * cellSize + offset[2] * self.scale
+        local key = x .. ":" .. y
+        local clearSpawn = math.abs(x) < 48 * self.scale and math.abs(y) < 48 * self.scale
+        if roll <= 40 and i <= count and not clearSpawn and not self.broken[key] then
+          local prop = Structure.new(kind, x, y, self.scale, self.world)
+          prop.onBreak = function(structure)
+            self.broken[key] = true
+            if self.onBreak then self.onBreak(structure) end
+          end
+          result[#result + 1] = prop
+        end
       end
     end
   end
@@ -146,6 +172,33 @@ function StructureSystem:traceProjectile(origin, destination, radius)
     local left, top, right, bottom = shape:bbox()
     local hit = traceBox(origin, destination, left - radius, top - radius, right + radius, bottom + radius)
     if hit and (not earliest or hit < earliest) then earliest = hit end
+  end
+  return earliest
+end
+
+-- Sweep against living creatures using the same body radius as knockback.
+function StructureSystem:traceCreatures(origin, destination, radius, creatures)
+  local earliest
+  local dx, dy = destination.x - origin.x, destination.y - origin.y
+  local a = dx * dx + dy * dy
+  for _, creature in ipairs(creatures) do
+    if creature.health > 0 then
+      local ox, oy = origin.x - creature.position.x, origin.y - creature.position.y
+      local reach = radius + 6 * creature.scale
+      local c = ox * ox + oy * oy - reach * reach
+      local hit
+      if c <= 0 then
+        hit = 0
+      elseif a > 0 then
+        local b = ox * dx + oy * dy
+        local discriminant = b * b - a * c
+        if discriminant >= 0 then
+          local t = (-b - math.sqrt(discriminant)) / a
+          if t >= 0 and t <= 1 then hit = t end
+        end
+      end
+      if hit and (not earliest or hit < earliest) then earliest = hit end
+    end
   end
   return earliest
 end

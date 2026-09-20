@@ -30,7 +30,7 @@ game.player = {x = 0, y = 120, animation = animation(2)}
 game.knight = {position = {x = 0, y = 80}, animation = animation(2),
   draw = function() record("knight") end}
 -- Deliberately reversed chunk order; both floors must precede all bodies.
-game.map = setmetatable({chunkSize = 100, tileScale = 1, visible = {
+game.map = setmetatable({chunkSize = 100, tileScale = 1, chunks = {}, visible = {
   {x = 0, y = 1, batches = {{}}, structures = {pillar("front pillar", 150)}},
   {x = 0, y = 0, batches = {{}}, structures = {pillar("pillar", 100)}},
 }}, MapSystem)

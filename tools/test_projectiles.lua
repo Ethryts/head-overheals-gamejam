@@ -241,6 +241,22 @@ assert(kick:tryActivate(0,0,vector(1,0),kickCreatures,shots))
 assert(#shots.projectiles==3, 'Fresh activation clears later shots')
 shots:destroy()
 
+-- Prop breaking shares the kick's range, aim and cooldown.
+local propsWorld = HC.new()
+local props = {
+  Structure.new('crate', 40, 8, 4, propsWorld),
+  Structure.new('barrel', -40, 8, 4, propsWorld),
+  Structure.new('brazier', 120, 6, 4, propsWorld),
+  Structure.new('pillar_round', 60, 16, 4, propsWorld),
+}
+local propKick = Kick.new()
+assert(propKick:tryActivate(0, 0, vector(1, 0), kickCreatures, nil, nil, props))
+assert(props[1].flight and not props[1].broken and not props[1].shape)
+assert(props[2].shape and props[3].shape and props[4].shape)
+assert(not propKick:tryActivate(0, 0, vector(-1, 0), kickCreatures, nil, nil, props))
+assert(props[2].shape, 'Cooldown prevents breaking more props')
+for _, prop in ipairs(props) do prop:destroy() end
+
 -- Native game callbacks: world drawing, pause, debug isolation, death and restart.
 dofile('game/main.lua')
 local GS=require('gamestate.deps').Gamestate
@@ -282,5 +298,28 @@ assert(#game.projectiles.projectiles==0 and next(HC.hash():shapes())==nil)
 love.update(0) -- Let HUMP enter the end-screen event cycle before pressing restart.
 love.keypressed('return'); love.update(0)
 assert(GS.current()==game and #game.projectiles.projectiles==0 and game.knight.health==startingHealth)
+-- Generated props use the live game's coin-drop callback.
+game.pickups:destroy()
+local prop
+for _, structure in ipairs(game.map:getVisibleStructures()) do
+  if structure.breakable then prop = structure; break end
+end
+assert(prop, 'A fresh game generates breakable props')
+local sx, sy = prop.shape:center()
+game.player.x, game.player.y = sx - 40, sy
+game.player.kickDirection = vector(1, 0)
+game.player.kickRequested = true
+game.player.kick.cooldownRemaining = 0
+assert(require('src.player').resolveKick(game.player, game.creatures, game.projectiles, game.fx, {prop}))
+assert(prop.flight and not prop.broken and #game.pickups.items == 0, 'Kick launches without dropping loot')
+local particlesBefore = #game.fx.particles
+game.map:updateStructures(1, {})
+assert(prop.broken and #game.pickups.items == 1, 'Impact creates a coin from a generated prop')
+assert(#game.fx.particles > particlesBefore, 'Breaking emits particles')
+assert(not prop:tryBreak() and #game.pickups.items == 1)
+game.player.shape:moveTo(prop.x, prop.y)
+local score = game.score
+game.pickups:checkCollected(game.player, game.knight, game)
+assert(game.score == score + 1, 'The dropped gold coin can be collected')
 game:leave()
 print('Projectile tests passed: swept hits, pillars, streaming, ranged combat, kick destruction, pause, debug isolation and restart')

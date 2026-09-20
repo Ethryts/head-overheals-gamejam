@@ -1,3 +1,4 @@
+local Stats = require("src.stats")
 local vector            = require("lib.hump.vector")
 local PlayerAnimation   = require("src.player_animation")
 local Player            = require("src.player")
@@ -6,7 +7,7 @@ local Player            = require("src.player")
 ---@field direction 1|-1 Facing direction, preserved while idle.
 ---@field animation PlayerAnimation
 ---@field health number Clamped to 0..OVERHEAL_LIMIT by setHealth.
----@field speed number World pixels per second.
+---@field stats ActorStats Movement stats; pickup abilities can modify them.
 ---@field state "idle"|"moving"|"attacking"
 ---@field idleTimer number Seconds remaining before choosing a destination.
 ---@field attackCooldown number Seconds remaining before the next attack.
@@ -54,7 +55,7 @@ function Knight.new(x, y)
     headScale = KNIGHT_HEAD_SCALE,
   })
   self.health = STARTING_HEALTH
-  self.speed = MOVE_SPEED
+  self.stats = Stats.new(MOVE_SPEED)
   self.state = "idle"
   self.idleTimer = rollIdleDuration()
   self.attackCooldown = 0
@@ -161,7 +162,7 @@ function Knight:update(dt, creatureSystem, player)
       self.idleTimer = rollIdleDuration()
     else
       if toGoal.x ~= 0 then self.direction = toGoal.x < 0 and -1 or 1 end
-      self.position = self.position + (toGoal / distance) * self.speed * dt
+      self.position = self.position + (toGoal / distance) * self.stats.speed * dt
     end
   end
 	if Player.doesBeamOverlapWithPoint(player, self.position, ATTACK_RANGE) then

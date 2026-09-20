@@ -38,3 +38,21 @@
 ---@field moveTo fun(self: HCShape, x: number, y: number)
 ---@field center fun(self: HCShape): number, number
 ---@field collidesWith fun(self: HCShape, other: HCShape): boolean, number, number
+
+---@class PickupContext
+---@field game? GameState The current run, available to score and other game-wide effects.
+---@field player Player The healer collecting the pickup.
+---@field knight? Knight The current knight, if present.
+
+---@alias PickupRarity "common"|"uncommon"|"rare"
+
+---@class Item
+---@field id string Stable item ID.
+---@field name string Display name.
+---@field rarity PickupRarity
+---@field weight number Relative spawn weight; zero disables random spawning.
+---@field description string
+---@field imagePath string Image or horizontal sprite sheet, relative to game/.
+---@field frames? string Anim8 frame range; defaults to "1-1" for static icons.
+---@field frameDuration? number Defaults to 0.2 seconds; frames are 16x16.
+---@field onCollect fun(pickup: Pickup, context: PickupContext) Effect owned by the item.

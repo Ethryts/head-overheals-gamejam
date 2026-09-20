@@ -1,3 +1,4 @@
+local Stats = require("src.stats")
 local baton = require("lib.baton")
 local vector = require("lib.hump.vector")
 local PlayerAnimation = require("src.player_animation")
@@ -6,7 +7,7 @@ local Beam = require("src.beam")
 ---@class Player
 ---@field x number World-space horizontal position.
 ---@field y number World-space vertical position.
----@field speed number World pixels per second.
+---@field stats ActorStats Movement stats; pickup abilities can modify them.
 ---@field direction 1|-1 Facing direction, preserved while idle.
 ---@field animation PlayerAnimation
 ---@field input BatonInput
@@ -28,12 +29,11 @@ function Player.new(x, y)
   })
 	player.x = x or 100
 	player.y = y or 100
-	player.speed = 200
+	player.stats = Stats.new(200)
 
 	player.allBeams = {}
 	player.currentBeam = nil
 
-	player.speed = 200
   player.direction = 1 -- 1: right, -1: left; preserved while idle.
 
   player.input = baton.new({
@@ -94,8 +94,8 @@ function Player.update(player, dt)
 		player.currentBeam = nil
 	end
 
-  local moveX = dx * player.speed * dt
-  local moveY = dy * player.speed * dt
+  local moveX = dx * player.stats.speed * dt
+  local moveY = dy * player.stats.speed * dt
 
   player.x = player.x + moveX
   player.y = player.y + moveY

@@ -219,6 +219,10 @@ local oldFx=game.fx
 love.keypressed('f2'); love.update(0)
 assert(#oldFx.particles==0 and #oldFx.emitters==0)
 love.keypressed('return'); love.update(0)
-assert(game.fx~=oldFx and #game.fx.particles==0)
+assert(game.fx~=oldFx)
+-- Fresh visible braziers emit immediately; effects from the previous run must not survive.
+for _, particle in ipairs(game.fx.particles) do
+  assert(particle.preset == presets.brazier_flame or particle.preset == presets.embers)
+end
 game:leave()
 print('FX tests passed: presets, independent RNG, emission/stop, timing, budgets, draw order, hooks, pause, debug and restart')

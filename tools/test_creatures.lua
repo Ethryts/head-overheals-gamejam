@@ -206,6 +206,7 @@ package.preload["src.knight"] = function()
 end
 package.preload["systems.map"] = function()
   return {new = function() return {
+    structureSystem = {}, updateStructures = noop, updateStructureEffects = noop,
     update = noop, draw = noop, drawForeground = noop, drawFloor = noop, destroy = noop, resolveMovement = noop,
     getVisibleStructures = function() return {} end,
   } end}

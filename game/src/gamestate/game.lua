@@ -44,6 +44,7 @@ local HealResource = require("src.heal_resource")
 
 function game:enter(previous)
   self.score = 0
+  self.overhealSequenceStarted = false
   self.timer = 0
   self.fx = FxSystem.new()
   self.worldCanvas = WorldCanvas.new()
@@ -90,6 +91,16 @@ end
 
 ---@param dt number Elapsed seconds.
 function game:update(dt)
+  if self.knight.dying then
+    self:beginOverhealSequence()
+    self.knight:update(dt, self.creatures, self.player)
+    self.fx:update(dt)
+    if self.knight.dead then
+      return self:finish({ title = "Overhealed", message = "The knight's head exploded." })
+    end
+    return
+  end
+  self.overhealSequenceStarted = false
   game.timer = (game.timer or 0) + dt
 
   UI.begin(self.ui)
@@ -169,14 +180,24 @@ function game:update(dt)
     Gamestate.soundEffectsSystem:stopAllSoundEffects()
     Gamestate.soundEffectsSystem:playSoundEffect("Death")
     return self:finish({ title = "You lost", message = "The knight has fallen." })
-  elseif self.knight.overhealed then
-    Gamestate.soundEffectsSystem:stopAllSoundEffects()
-    Gamestate.soundEffectsSystem:playSoundEffect("HeadOverhealed")
-    return self:finish({ title = "Overhealed", message = "The knight's head exploded." })
+  elseif self.knight.dying then
+    self:beginOverhealSequence()
+    return
   end
 
   Gamestate.musicSystem:receiveHealthUpdate(self.knight:GetHealthPercentage())
   -- When finished: return self:finish({ title = "Finished", message = "..." })
+end
+
+-- Freeze gameplay while the one-shot sound, buildup and sprite fracture play out.
+function game:beginOverhealSequence()
+  if self.overhealSequenceStarted then return end
+  self.overhealSequenceStarted = true
+  Gamestate.soundEffectsSystem:stopAllSoundEffects()
+  Gamestate.soundEffectsSystem:playSoundEffect("HeadOverhealed")
+  if self.healingEmitter then self.healingEmitter:stop(); self.healingEmitter = nil end
+  for _, beam in ipairs(self.player.allBeams or {}) do beam:destroy() end
+  self.player.allBeams, self.player.currentBeam = {}, nil
 end
 
 function game:drawWorld()

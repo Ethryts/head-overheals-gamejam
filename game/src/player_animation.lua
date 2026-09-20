@@ -14,6 +14,7 @@ local anim8 = require("lib.anim8")
 ---@field head PlayerAnimationLayer
 ---@field bodyScale number
 ---@field headScale number
+---@field headVisible? boolean False hides only the head, such as during an explosion.
 local PlayerAnimation = {}
 PlayerAnimation.__index = PlayerAnimation
 
@@ -62,12 +63,16 @@ end
 ---@param x number
 ---@param y number
 ---@param direction? number 1 for right, -1 for left; defaults to right.
-function PlayerAnimation:draw(x, y, direction)
+---@param headOffsetX? number Visual-only head displacement in world pixels.
+---@param headOffsetY? number
+function PlayerAnimation:draw(x, y, direction, headOffsetX, headOffsetY)
   direction = direction or 1
   love.graphics.push("all")
   love.graphics.setColor(1, 1, 1, 1)
   drawLayer(self.body, x, y, direction, self.bodyScale)
-  drawLayer(self.head, x, y, direction, self.headScale)
+  if self.headVisible ~= false then
+    drawLayer(self.head, x + (headOffsetX or 0), y + (headOffsetY or 0), direction, self.headScale)
+  end
   love.graphics.pop()
 end
 

@@ -4,6 +4,7 @@ local vector            = require("lib.hump.vector")
 local PlayerAnimation   = require("src.player_animation")
 local Player            = require("src.player")
 local HealthBar = require("src.health_bar")
+local HeadBurst = require("src.head_burst")
 
 ---@class Knight: CreatureActor
 ---@field direction 1|-1 Facing direction, preserved while idle.
@@ -11,7 +12,10 @@ local HealthBar = require("src.health_bar")
 ---@field health number Clamped to 0..(stats.maxHealth * OVERHEAL_RATIO) by setHealth.
 ---@field stats ActorStats Movement/health stats; pickup abilities can modify them.
 ---@field healthBar HealthBar
----@field state "idle"|"moving"|"attacking"
+---@field state "idle"|"moving"|"attacking"|"dying"|"dead"
+---@field dying boolean Overheal buildup and head burst are in progress.
+---@field deathElapsed number
+---@field headBurst? table Sprite fragments created once at the burst threshold.
 ---@field idleTimer number Seconds remaining before choosing a destination.
 ---@field attackCooldown number Seconds remaining before the next attack.
 ---@field destination? HumpVector
@@ -22,6 +26,7 @@ local HealthBar = require("src.health_bar")
 ---@field patrolAnchor? HumpVector Center of the patrol area.
 local Knight            = {}
 Knight.__index          = Knight
+Knight.overhealDeath = {burstDelay = 1, fragmentDuration = 0.8}
 
 local ATTACK_RANGE     = 60
 local ATTACK_COOLDOWN  = 0.8
@@ -65,6 +70,7 @@ function Knight.new(x, y)
   self.attackCooldown = 0
   self.destination = nil
   self.dead = false
+  self.dying, self.deathElapsed = false, 0
   self.overhealed = false
   self.healedThisUpdate = false
   return self
@@ -77,6 +83,13 @@ function Knight:setPatrolRadius(radius, anchor)
   self.patrolAnchor = anchor or self.position:clone()
 end
 
+function Knight:updateHealthVisuals()
+  local overRatio = math.max(0, (self.health - self.stats.maxHealth)
+    / (self.stats.maxHealth * (OVERHEAL_RATIO - 1)))
+  self.animation.headScale = KNIGHT_HEAD_SCALE * (1 + overRatio)
+  self.healthBar:setOverheal(overRatio)
+end
+
 -- Setting health directly also lets debug tools reset death/overheal states.
 ---@param amount number Absolute health; resets death/overheal flags.
 function Knight:setHealth(amount)
@@ -85,8 +98,36 @@ function Knight:setHealth(amount)
   self.health = math.max(0, math.min(overhealLimit, amount))
   self.dead = self.health <= 0
   self.overhealed = self.health >= overhealLimit
-  local percentage_over = (self.health - self.stats.maxHealth) / (overhealLimit - self.stats.maxHealth)
-  self.animation.headScale = math.max(KNIGHT_HEAD_SCALE * (1 + percentage_over), KNIGHT_HEAD_SCALE)
+  self:updateHealthVisuals()
+  if self.overhealed then
+    if not self.dying then
+      self.dying, self.deathElapsed, self.headBurst = true, 0, nil
+      self.state = "dying"
+      self.animation.headVisible = true
+    end
+  else
+    self.dying, self.deathElapsed, self.headBurst = false, 0, nil
+    self.animation.headVisible = true
+    if self.state == "dying" or self.state == "dead" then self.state = "idle" end
+  end
+end
+
+function Knight:updateDying(dt)
+  local timing = Knight.overhealDeath
+  local previous = self.deathElapsed
+  self.deathElapsed = previous + dt
+  if self.deathElapsed >= timing.burstDelay then
+    if not self.headBurst then
+      self.headBurst = HeadBurst.new(self.animation.head, self.position.x, self.position.y,
+        self.animation.headScale, self.direction, timing.fragmentDuration)
+      self.animation.headVisible = false
+    end
+    local fragmentDt = self.deathElapsed - math.max(previous, timing.burstDelay)
+    self.headBurst:update(fragmentDt)
+  end
+  if self.deathElapsed >= timing.burstDelay + timing.fragmentDuration then
+    self.dying, self.dead, self.state = false, true, "dead"
+  end
 end
 
 
@@ -136,6 +177,9 @@ end
 ---@param player Player
 function Knight:update(dt, creatureSystem, player)
   self.healedThisUpdate = false
+  self.healthBar:update(dt)
+  self:updateHealthVisuals()
+  if self.dying then return self:updateDying(dt) end
   if self.dead or self.overhealed then return end
 
   self.animation:update(dt)
@@ -191,15 +235,12 @@ function Knight:update(dt, creatureSystem, player)
 end
 
 function Knight:draw()
-  self.animation:draw(self.position.x, self.position.y, self.direction)
-
-
-	local overhealLimit = self.stats.maxHealth * OVERHEAL_RATIO
-
-  -- Flush red as he climbs past the safe cap toward the overheal limit.
-  local overRatio = math.max(0, (self.health - self.stats.maxHealth) / (overhealLimit - self.stats.maxHealth))
-  local fillColor = { 1, 1 - overRatio, 1 - overRatio, 1 }
-  self.healthBar:draw(self.position.x, self.position.y, self.health / overhealLimit, fillColor)
+  local shakeX, shakeY = self.healthBar:headShake(self.dying or (self.healedThisUpdate and not self.dead))
+  self.animation:draw(self.position.x, self.position.y, self.direction, shakeX, shakeY)
+  if self.headBurst then self.headBurst:draw() end
+  if not self.headBurst then
+    self.healthBar:draw(self.position.x, self.position.y, self.health / self.stats.maxHealth)
+  end
 end
 
 function Knight:GetHealthPercentage()

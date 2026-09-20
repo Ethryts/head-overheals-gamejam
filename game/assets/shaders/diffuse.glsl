@@ -1,7 +1,4 @@
-#ifdef GL_ES
-precision highp float;
-#endif
-
+// Use LÖVE's default precision so effect matches its generated WebGL declaration.
 uniform vec2 screenSize;
 
 vec4 effect(

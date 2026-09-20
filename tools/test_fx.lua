@@ -74,6 +74,17 @@ for name,preset in pairs(presets) do
   assert(p.depth==220,'Rising particles retain their ground-depth anchor')
   fx:update(5); assert(#fx.particles==0)
 end
+-- Birth-count rounding must not create particles with negative ages/colors[0].
+for name, preset in pairs(presets) do
+  if preset.rate > 0 then
+    local boundary = Fx.new()
+    boundary:start(name, 0, 0)
+    boundary:update(1 / preset.rate - 1e-12)
+    assert(#boundary.particles == 1)
+    boundary:draw()
+    assert(boundary.particles[1].age >= 0, 'Newborn particles cannot age backwards')
+  end
+end
 local a,b=Fx.new({seed=7}),Fx.new({seed=7})
 a:emit('sparks',0,0); b:emit('sparks',0,0)
 a:update(0.1); b:update(0.05); b:update(0.05)

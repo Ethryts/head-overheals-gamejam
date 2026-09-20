@@ -1,0 +1,26 @@
+[     355ms] [INFO] loading game.data from remote @ http://127.0.0.1:8768/game.js:259
+[   28045ms] [LOG] [jam] ready @ http://127.0.0.1:8768/player.js:31
+[   28075ms] [WARNING] [.WebGL-0x5040013a000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://127.0.0.1:8768/:0
+[   28278ms] [WARNING] [.WebGL-0x5040013a000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://127.0.0.1:8768/:0
+[   28326ms] [WARNING] [.WebGL-0x5040013a000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://127.0.0.1:8768/:0
+[   28357ms] [WARNING] [.WebGL-0x5040013a000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat) @ http://127.0.0.1:8768/:0
+[   32422ms] [WARNING] [.WebGL-0x5040013a000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): Running out of reserved outsideRenderPass queueSerial. ending renderPass now. @ http://127.0.0.1:8768/:0
+[   32422ms] [WARNING] [.WebGL-0x5040013a000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): Running out of reserved outsideRenderPass queueSerial. ending renderPass now. @ http://127.0.0.1:8768/:0
+[   32583ms] [WARNING] [.WebGL-0x5040013a000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): Running out of reserved outsideRenderPass queueSerial. ending renderPass now. @ http://127.0.0.1:8768/:0
+[   32713ms] [WARNING] [.WebGL-0x5040013a000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): Running out of reserved outsideRenderPass queueSerial. ending renderPass now. (this message will no longer repeat) @ http://127.0.0.1:8768/:0
+[   93637ms] [LOG] Error: src/systems/fx.lua:207: attempt to index local 'color' (a nil value) @ http://127.0.0.1:8768/player.js:31
+[   93637ms] [LOG] stack traceback: @ http://127.0.0.1:8768/player.js:31
+[   93637ms] [LOG] 	[love "boot.lua"]:345: in function <[love "boot.lua"]:341> @ http://127.0.0.1:8768/player.js:31
+[   93638ms] [LOG] 	src/systems/fx.lua:207: in function 'drawParticle' @ http://127.0.0.1:8768/player.js:31
+[   93638ms] [LOG] 	src/gamestate/game.lua:251: in function 'draw' @ http://127.0.0.1:8768/player.js:31
+[   93638ms] [LOG] 	src/fx/draw_queue.lua:19: in function 'draw' @ http://127.0.0.1:8768/player.js:31
+[   93639ms] [LOG] 	src/gamestate/game.lua:254: in function 'draw' @ http://127.0.0.1:8768/player.js:31
+[   93639ms] [LOG] 	src/world_canvas.lua:25: in function 'draw' @ http://127.0.0.1:8768/player.js:31
+[   93639ms] [LOG] 	src/gamestate/game.lua:231: in function 'drawWorld' @ http://127.0.0.1:8768/player.js:31
+[   93639ms] [LOG] 	src/gamestate/game.lua:264: in function <src/gamestate/game.lua:263> @ http://127.0.0.1:8768/player.js:31
+[   93640ms] [LOG] 	(tail call): ? @ http://127.0.0.1:8768/player.js:31
+[   93640ms] [LOG] 	main.lua:37: in function 'drawScene' @ http://127.0.0.1:8768/player.js:31
+[   93640ms] [LOG] 	src/systems/shader.lua:91: in function 'draw' @ http://127.0.0.1:8768/player.js:31
+[   93640ms] [LOG] 	main.lua:35: in function 'draw' @ http://127.0.0.1:8768/player.js:31
+[   93640ms] [LOG] 	[love "callbacks.lua"]:168: in function <[love "callbacks.lua"]:144> @ http://127.0.0.1:8768/player.js:31
+[   93641ms] [LOG] 	[C]: in function 'xpcall' @ http://127.0.0.1:8768/player.js:31

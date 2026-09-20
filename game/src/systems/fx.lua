@@ -104,6 +104,9 @@ end
 
 local function spawn(self, preset, x, y, options, age)
   if #self.particles >= self.maxParticles then return end
+  -- Emitter birth-count tolerance can put a birth just ahead of this frame.
+  -- Keep that rounding residue from producing a negative age and palette index 0.
+  age = math.max(0, age)
   local lifetime = sample(self, preset.lifetime[1], preset.lifetime[2])
   if age >= lifetime then return end
   local angle = (options.angle or preset.angle) + sample(self, -preset.spread / 2, preset.spread / 2)

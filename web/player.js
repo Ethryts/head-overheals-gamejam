@@ -42,7 +42,7 @@ var Module = {
     if (failed) return;
     // Wait for a user gesture before the first Lua frame and audio startup.
     Module.pauseMainLoop();
-    statusText.textContent = 'Ready when you are.';
+    statusText.textContent = '';
     startButton.hidden = false;
     fitCanvas();
   }]

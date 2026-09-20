@@ -116,6 +116,20 @@ def replace_directory(destination: Path) -> None:
     destination.mkdir(parents=True)
 
 
+def patch_lovejs_audio(runtime: Path) -> None:
+    """Fix love.js 11.4.1's OpenAL vector calls passing IDs instead of sources.
+
+    Matches the source lookup in current Emscripten's libopenal.js. Patch only
+    the exported runtime, leaving the npm dependency intact; already fixed
+    runtimes are unchanged.
+    """
+    source = runtime.read_text(encoding="utf-8")
+    broken = "AL.setSourceState(HEAP32[pSourceIds+i*4>>2],"
+    fixed = "AL.setSourceState(AL.currentCtx.sources[HEAP32[pSourceIds+i*4>>2]],"
+    if broken in source:
+        runtime.write_text(source.replace(broken, fixed), encoding="utf-8")
+
+
 def build_web(root: Path = ROOT) -> Path:
     settings = config(root)
     dist = root / "dist"
@@ -158,6 +172,7 @@ def build_web(root: Path = ROOT) -> Path:
              str(love_file), str(destination)],
             cwd=root, check=True,
         )
+        patch_lovejs_audio(destination / "love.js")
         for name in ("index.html", "player.js", "style.css"):
             content = (root / "web" / name).read_text(encoding="utf-8")
             content = content.replace("__GAME_TITLE__", html.escape(settings["title"], quote=True))

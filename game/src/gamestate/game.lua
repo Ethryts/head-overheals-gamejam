@@ -32,17 +32,14 @@ function game:enter(previous)
   self.player.shape = HC.circle(self.player.x, self.player.y, 16)
   self.map = MapSystem.new({ seed = 1 })
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
-
-  self.pickups = Pickups.new(self.player) -- TODO replace with real dimensions
-  self.pickups:spawn(15)
-
+  self.pickups = Pickups.new(self.player)
   self.creatures = CreatureSystem.new()
   self.creatures:create("death_slime", UI.width / 2, UI.height / 2, {
     scale = 4,
   })
 
   self.knight = Knight.new(0, 0)
-  self.knight:setPatrolRadius(300)
+  self.knight:setPatrolRadius(600)
 
   self.spawner = Spawner.new(self.creatures, {
     interval = 2.5,
@@ -81,7 +78,7 @@ function game:update(dt)
     return self:finish({ title = "Overhealed", message = "The knight's head exploded." })
   end
 
-  self.spawner:update(dt)
+  self.spawner:update(dt, self.player.x, self.player.y)
 	Gamestate.musicSystem:receiveHealthUpdate(self.knight:GetHealthPercentage())
 
   ---@type CreatureSystemContext

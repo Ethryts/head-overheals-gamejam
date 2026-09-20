@@ -114,16 +114,28 @@ function Knight:heal(amount)
   end
 end
 
-local function findNearest(self, creatureSystem)
-  local nearest, nearestDist
+local function findInRange(self, creatureSystem, range)
+  local inRange = {}
   for _, creature in ipairs(creatureSystem:getAll()) do
     local dist = (creature.position - self.position):len()
-    if not nearestDist or dist < nearestDist then
-      nearest, nearestDist = creature, dist
+    if dist <= range then
+      inRange[#inRange + 1] = creature
     end
   end
-  return nearest, nearestDist
+  return inRange
 end
+
+-- deprecated
+--local function findNearest(self, creatureSystem)
+--  local nearest, nearestDist
+--  for _, creature in ipairs(creatureSystem:getAll()) do
+--    local dist = (creature.position - self.position):len()
+--    if not nearestDist or dist < nearestDist then
+--      nearest, nearestDist = creature, dist
+--    end
+--  end
+--  return nearest, nearestDist
+--end
 
 ---@param dt number Elapsed seconds.
 ---@param creatureSystem CreatureSystem
@@ -134,25 +146,30 @@ function Knight:update(dt, creatureSystem, player)
   self.animation:update(dt)
   self.attackCooldown = math.max(0, self.attackCooldown - dt)
 
-  local nearest, dist = findNearest(self, creatureSystem)
+  local targets = findInRange(self, creatureSystem, ATTACK_RANGE)
+  local isAttacking = #targets > 0
 
-  if nearest and dist <= ATTACK_RANGE then
-    local dx = nearest.position.x - self.position.x
-    if dx ~= 0 then self.direction = dx < 0 and -1 or 1 end
-    self.state = "attacking"
-    if self.attackCooldown <= 0 then
-      creatureSystem:damage(nearest, 1)
-      self.attackCooldown = ATTACK_COOLDOWN
+  if isAttacking and self.attackCooldown <= 0 then
+    for _, target in ipairs(targets) do
+      creatureSystem:damage(target, 1)
     end
+    self.attackCooldown = ATTACK_COOLDOWN
+  end
+
+  if isAttacking then
+    self.state = "attacking"
   elseif self.state == "attacking" then
     self.state = "idle"
     self.idleTimer = rollIdleDuration()
-  elseif self.state == "idle" then
+  end
+
+  if self.state == "idle" then
     self.idleTimer = self.idleTimer - dt
     if self.idleTimer <= 0 then
       self.destination = pickDestination(self)
       self.state = "moving"
     end
+
   elseif self.state == "moving" then
     local toGoal = self.destination - self.position
     local distance = toGoal:len()

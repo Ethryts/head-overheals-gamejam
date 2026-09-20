@@ -67,25 +67,28 @@ local function pickFromPool(pool)
 end
 
 -- Picks a point just outside one of the four screen edges.
-local function randomOffscreenPoint(margin)
+local function randomOffscreenPoint(centerX, centerY, margin)
     local width, height = love.graphics.getDimensions()
+    local halfW, halfH = width / 2, height / 2
     local edge = math.random(4)
-
-    if edge == 1 then -- top
-        return math.random(0, width), -margin
-    elseif edge == 2 then -- bottom
-        return math.random(0, width), height + margin
-    elseif edge == 3 then -- left
-        return -margin, math.random(0, height)
-    else -- right
-        return width + margin, math.random(0, height)
+    local offsetW = math.random(-math.floor(halfW), math.floor(halfW))
+    local offsetH = math.random(-math.floor(halfH), math.floor(halfH))
+    
+    if edge == 1 then
+        return centerX + offsetW, centerY - halfH - margin
+    elseif edge == 2 then
+        return centerX + offsetW, centerY + halfH + margin
+    elseif edge == 3 then
+        return centerX - halfW - margin, centerY + offsetH
+    else
+        return centerX + halfW + margin, centerY + offsetH
     end
 end
 
 ---@return Creature
-function Spawner:spawnOne()
+function Spawner:spawnOne(anchorX, anchorY)
     local id = pickFromPool(self.pool)
-    local x, y = randomOffscreenPoint(self.margin)
+    local x, y = randomOffscreenPoint(anchorX, anchorY, self.margin)
 
     return self.creatureSystem:create(id, x, y, {
         behavior = behavior.chase,
@@ -95,12 +98,12 @@ function Spawner:spawnOne()
 end
 
 ---@param dt number Elapsed seconds.
-function Spawner:update(dt)
+function Spawner:update(dt, anchorX, anchorY)
     if not self.enabled then return end
 
     self.timer = self.timer - dt
     if self.timer <= 0 then
-        self:spawnOne()
+        self:spawnOne(anchorX, anchorY)
         self.timer = self.interval
     end
 end

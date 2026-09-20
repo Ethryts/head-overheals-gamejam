@@ -4,7 +4,8 @@ local hud = require("debug.hud")
 local tests = require("debug.tests")
 local debugState = {}
 
-function debugState:enter()
+function debugState:enter(previous)
+  self.game = previous and (previous.game or previous)
   self.ui = UI.new()
   self.activeTest = nil
   self.menuOpen = true
@@ -12,7 +13,7 @@ function debugState:enter()
 end
 
 function debugState:selectTest(definition)
-  self.activeTest = definition.new()
+  self.activeTest = definition.new(self.game)
   self.menuOpen = false
   self.debugLabel = definition.label
   self.ui = UI.new()
@@ -40,7 +41,8 @@ function debugState:draw()
     UI.footer("F3 / Esc: exit debug     F4: toggle HUD")
   else
     self.activeTest:draw()
-    UI.footer("Left click: run test     Esc: test menu     F3: exit debug     F4: HUD")
+    UI.footer(self.activeTest.footer or
+      "Left click: run test     Esc: test menu     F3: exit debug     F4: HUD")
   end
 end
 
@@ -61,6 +63,7 @@ function debugState:mousepressed(...)
 end
 
 function debugState:leave()
+  self.game = nil
   self.activeTest = nil
   self.ui = nil
 end

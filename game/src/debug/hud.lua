@@ -6,6 +6,12 @@ local font
 -- Add another function here to display a live value. Return nil to hide a row.
 hud.rows = {
   function(state) return "Debug: " .. (state.debugLabel or "off") end,
+  function(state)
+    local player = state.player or (state.game and state.game.player)
+    if player then
+      return string.format("Player world: %.1f, %.1f", player.x, player.y)
+    end
+  end,
   function()
     local x, y, inside = viewport.toGame(love.mouse.getPosition())
     return string.format("Mouse: %.0f, %.0f%s", x, y, inside and "" or " (outside)")

@@ -1,4 +1,4 @@
-love.filesystem.setRequirePath(love.filesystem.getRequirePath() .. ";src/?.lua;src/?/init.lua")
+  love.filesystem.setRequirePath(love.filesystem.getRequirePath() .. ";src/?.lua;src/?/init.lua")
 
 local project = require("project")
 local viewport = require("src.viewport")

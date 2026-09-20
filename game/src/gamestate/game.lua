@@ -25,7 +25,7 @@ function game:enter(previous)
   })
 
   self.knight = Knight.new(0, 0)
-  self.knight:setPatrolArea(40, 40, UI.width - 40, UI.height - 40)
+  self.knight:setPatrolRadius(300)
 
   self.spawner = Spawner.new(self.creatures, {
     interval = 2.5,
@@ -52,6 +52,12 @@ function game:update(dt)
   self.pickups:checkCollected(self.player.shape)
 
   self.knight:update(dt, self.creatures)
+
+  if self.knight.dead then
+    return self:finish({ title = "You lost", message = "The knight has fallen." })
+  elseif self.knight.overhealed then
+    return self:finish({ title = "Overhealed", message = "The knight's head exploded." })
+  end
 
   self.spawner:update(dt)
 

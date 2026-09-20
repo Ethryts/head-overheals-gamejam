@@ -6,6 +6,7 @@ local MapSystem = require("systems.map")
 local FxSystem = require("systems.fx")
 local WorldCanvas = require("src.world_canvas")
 local DrawQueue = require("fx.draw_queue")
+local vector = require("lib.hump.vector")
 ---@class GameContext
 ---@field player? Player
 ---@field knight? Knight
@@ -90,6 +91,12 @@ function game:update(dt)
   self.map:resolveMovement(self.player, oldX, oldY)
   self.map:update(self.player.x, self.player.y, UI.width, UI.height)
   self.pickups:checkCollected(self.player, self.knight, self)
+  local function traceBeam(origin, destination, radius)
+    return self.map:traceProjectile(origin, destination, radius)
+  end
+  for _, beam in ipairs(self.player.allBeams or {}) do
+    beam:clipAgainstWorld(traceBeam, vector(self.player.x, self.player.y))
+  end
   local dx, dy = self.player.x - oldX, self.player.y - oldY
   self.dustDistance = self.dustDistance + math.sqrt(dx * dx + dy * dy)
   if self.dustDistance >= 24 then
@@ -160,18 +167,19 @@ end
 function game:drawWorld()
   self.worldCanvas:draw(function()
     love.graphics.translate(UI.width / 2 - self.player.x, UI.height / 2 - self.player.y)
-    self.map:draw(-math.huge) -- Floor only; pillars join the depth queue below.
+    self.map:drawFloor()
     self.fx:draw("ground")
     self.pickups:draw()
     local queue = DrawQueue.new()
-    for _, structure in ipairs(self.map:getVisibleStructures()) do
-      queue:add(structure.y, function() structure:draw() end)
-    end
     for _, creature in ipairs(self.creatures:getAll()) do
-      queue:add(creature.position.y + 8 * creature.scale, function() self.creatures:drawCreature(creature) end)
+      queue:add(self.creatures:getFeetY(creature), function() self.creatures:drawCreature(creature) end)
     end
     queue:add(self.knight.animation:getFeetY(self.knight.position.y), function() self.knight:draw() end)
     queue:add(self.player.animation:getFeetY(self.player.y), function() Player.draw(self.player) end)
+    -- Pillars cover bodies at equal depth until their feet move in front.
+    for _, structure in ipairs(self.map:getVisibleStructures()) do
+      queue:add(structure.y, function() structure:draw() end)
+    end
     for _, shot in ipairs(self.projectiles.projectiles) do
       queue:add(shot.position.y, function() self.projectiles:drawProjectile(shot) end)
     end

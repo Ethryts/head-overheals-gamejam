@@ -1,7 +1,7 @@
 ---@class MapSystem
 ---@field seed integer|string
 ---@field private chunks table<string, table>
----@field private visible table[]
+---@field visible table[] Visible chunks for world rendering.
 local MapSystem = {}
 MapSystem.__index = MapSystem
 
@@ -217,9 +217,7 @@ function MapSystem:traceProjectile(origin, destination, radius)
 end
 
 -- Caller applies the world/camera transform. No generation occurs during draw.
--- With splitY, draw only structures behind that anchor; drawForeground draws
--- the rest after the player, allowing tall pillars to occlude the player.
-function MapSystem:draw(splitY)
+function MapSystem:drawFloor()
   love.graphics.push("all")
   love.graphics.setColor(1, 1, 1, 1)
   for _, chunk in ipairs(self.visible) do
@@ -228,6 +226,13 @@ function MapSystem:draw(splitY)
         0, self.tileScale, self.tileScale)
     end
   end
+  love.graphics.pop()
+end
+
+-- Optional single-anchor split for callers without a shared body draw order.
+function MapSystem:draw(splitY)
+  self:drawFloor()
+  love.graphics.push("all")
   -- Structures draw after all floor chunks so adjacent floors can't cover them.
   for _, chunk in ipairs(self.visible) do
     for _, structure in ipairs(chunk.structures) do

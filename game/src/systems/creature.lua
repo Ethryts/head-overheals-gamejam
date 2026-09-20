@@ -171,6 +171,12 @@ function CreatureSystem:update(dt, context)
 end
 
 ---@param creature Creature
+function CreatureSystem:getFeetY(creature)
+  local _, height = creature.animations.idle:getDimensions()
+  return creature.position.y + height / 2 * creature.scale
+end
+
+---@param creature Creature
 function CreatureSystem:drawCreature(creature)
   love.graphics.push("all")
   local flash = creature.knockback

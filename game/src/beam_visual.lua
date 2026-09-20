@@ -10,14 +10,26 @@ function Visual.new()
   return self
 end
 
-local function point(x0, y0, x1, y1, x2, y2, t)
+local function point(x0, y0, x1, y1, x2, y2, t, path)
+  if path then
+    local step = t * (#path - 1)
+    local index = math.min(math.floor(step) + 1, #path - 1)
+    local first, last = path[index], path[index + 1]
+    local fraction = step - index + 1
+    return first.x + (last.x-first.x)*fraction, first.y + (last.y-first.y)*fraction,
+      last.x-first.x, last.y-first.y
+  end
   local u = 1 - t
-  return u*u*x0 + 2*u*t*x1 + t*t*x2, u*u*y0 + 2*u*t*y1 + t*t*y2
+  return u*u*x0 + 2*u*t*x1 + t*t*x2, u*u*y0 + 2*u*t*y1 + t*t*y2,
+    u*(x1-x0) + t*(x2-x1), u*(y1-y0) + t*(y2-y1)
 end
 
 function Visual:update(beam, dt)
   self.time = self.time + dt
+  self.tipX = nil
   if not beam.isVisible or beam.length <= 0 then return end
+  local path = beam.points
+  if path and #path < 2 then return end
   local x0, y0, x2, y2 = beam.bottomLeft.x, beam.bottomLeft.y, beam.tip.x, beam.tip.y
   local dx, dy = x2-x0, y2-y0
   local length = math.sqrt(dx*dx + dy*dy)
@@ -29,9 +41,7 @@ function Visual:update(beam, dt)
   self.strength = math.min(1, beam.length / 24)
   for i = 0, SEGMENTS do
     local t = i / SEGMENTS
-    local x, y = point(x0,y0,x1,y1,x2,y2,t)
-    local tangentX = (1-t)*(x1-x0) + t*(x2-x1)
-    local tangentY = (1-t)*(y1-y0) + t*(y2-y1)
+    local x, y, tangentX, tangentY = point(x0,y0,x1,y1,x2,y2,t,path)
     local tangentLength = math.sqrt(tangentX*tangentX + tangentY*tangentY)
     local normalX, normalY = nx, ny
     if tangentLength > 0 then normalX, normalY = -tangentY/tangentLength, tangentX/tangentLength end
@@ -53,13 +63,13 @@ function Visual:update(beam, dt)
   for i, sparkle in ipairs(self.sparkles) do
     local phase = (self.time * (0.9 + i*0.03) + i/SPARKLES) % 1
     local t = (phase + i*0.173) % 1
-    local x,y = point(x0,y0,x1,y1,x2,y2,t)
+    local x,y = point(x0,y0,x1,y1,x2,y2,t,path)
     local offset = math.sin(i*7.3 + flicker)*beam.width*0.95
     sparkle.x, sparkle.y = x+nx*offset, y+ny*offset
     sparkle.visible = phase < 0.65
     sparkle.size = phase < 0.2 and 4 or 2
   end
-  self.tipX,self.tipY = x2,y2
+  self.tipX,self.tipY = point(x0,y0,x1,y1,x2,y2,1,path)
   self.dirty = true
 end
 

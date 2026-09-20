@@ -44,6 +44,27 @@ function Beam:releaseBeam(dt)
 		return
 	end
 
+	-- Retract along the already clipped path so released beams cannot emerge
+	-- on the far side of an obstruction as their tail advances.
+	if self.points then
+		local remaining = 1000 * dt
+		while #self.points > 1 do
+			local segment = self.points[2] - self.points[1]
+			local distance = segment:len()
+			if distance > remaining then
+				self.points[1] = self.points[1] + segment:normalized() * remaining
+				break
+			end
+			remaining = remaining - distance
+			table.remove(self.points, 1)
+		end
+		self.bottomLeft = self.points[1]:clone()
+		self.tip = self.points[#self.points]:clone()
+		self.length = (self.tip - self.bottomLeft):len()
+		self.isVisible = #self.points > 1
+		return
+	end
+
 	local toTip = self.tip - self.bottomLeft
 	local distance = toTip:len()
 
@@ -81,6 +102,7 @@ function Beam:update(dt, newPosition, direction)
 		self.visual:update(self, dt)
 		return
 	end
+	self.points = nil
 	Gamestate.soundEffectsSystem:playSoundEffect("HealingPassive", false)
 
 	self.bottomLeft = newPosition
@@ -149,6 +171,50 @@ function Beam:update(dt, newPosition, direction)
 	self.visual:update(self, dt)
 end
 
+-- Rendering and healing use the same sampled curve, stopped at its first impact.
+function Beam:getPoints()
+	if self.points then return self.points end
+	local p0 = self.bottomLeft
+	local p2 = self.tip
+
+	local midpoint = (p0 + p2) / 2
+
+	local beamDirection = (p2 - p0):normalized()
+
+	local perpendicular = vector(
+		-beamDirection.y,
+		beamDirection.x
+	)
+
+	local p1 =
+		midpoint + perpendicular * self.bend
+
+	local points = {p0}
+	for i = 1, 20 do
+		points[#points + 1] = self:bezier(p0, p1, p2, i / 20)
+	end
+	return points
+end
+
+function Beam:clipAgainstWorld(traceWorld, origin)
+	if origin and self.isActive then self.bottomLeft = origin end
+	if self.isActive then self.points = nil end
+	self.traceWorld = traceWorld
+	local points = self:getPoints()
+	local clipped = {points[1]}
+	for i = 2, #points do
+		local first, last = points[i - 1], points[i]
+		local hit = traceWorld(first, last, self.width / 2)
+		if hit then
+			if hit > 0 then clipped[#clipped + 1] = first + (last - first) * hit end
+			break
+		end
+		clipped[#clipped + 1] = last
+	end
+	self.points = clipped
+	self.visual:update(self, 0)
+end
+
 function Beam:draw()
   if self.isVisible and self.length > 0 then self.visual:draw() end
 end
@@ -181,21 +247,7 @@ function Beam:containsPoint(point, fuzziness)
 
 	fuzziness = fuzziness or 0
 
-	local p0 = self.bottomLeft
-	local p2 = self.tip
-
-	local midpoint = (p0 + p2) / 2
-
-	local beamDirection = (p2 - p0):normalized()
-
-	local perpendicular = vector(
-		-beamDirection.y,
-		beamDirection.x
-	)
-
-	local p1 = midpoint + perpendicular * self.bend
-
-	local segments = 20
+	local points = self:getPoints()
 
 	-- Normal beam radius + fuzziness
 	local collisionRadius =
@@ -204,15 +256,8 @@ function Beam:containsPoint(point, fuzziness)
 	local collisionRadiusSquared =
 		collisionRadius * collisionRadius
 
-	for i = 0, segments - 1 do
-		local t0 = i / segments
-		local t1 = (i + 1) / segments
-
-		local point0 =
-			self:bezier(p0, p1, p2, t0)
-
-		local point1 =
-			self:bezier(p0, p1, p2, t1)
+	for i = 1, #points - 1 do
+		local point0, point1 = points[i], points[i + 1]
 
 		-- Vector along this beam segment
 		local segment = point1 - point0
@@ -244,7 +289,8 @@ function Beam:containsPoint(point, fuzziness)
 			difference.x * difference.x +
 			difference.y * difference.y
 
-		if distanceSquared <= collisionRadiusSquared then
+		if distanceSquared <= collisionRadiusSquared
+			and (not self.traceWorld or not self.traceWorld(closestPoint, point, 0)) then
 			return true
 		end
 	end
@@ -254,4 +300,3 @@ end
 
 
 return Beam
-

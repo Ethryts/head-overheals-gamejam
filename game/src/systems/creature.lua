@@ -7,6 +7,7 @@ local ogre = require("creatures.brawny_ogre")
 local watcher = require("creatures.ocular_watcher")
 local ettin = require("creatures.humongous_ettin")
 local jelly = require("creatures.ochre_jelly")
+local attackCommon = require("attacks.common")
 
 ---@class CreatureActor
 ---@field position HumpVector Current position in the same game coordinates as creatures.
@@ -16,6 +17,7 @@ local jelly = require("creatures.ochre_jelly")
 ---@field projectiles? ProjectileSystem Ranged attacks spawn into this system.
 ---@field knight? CreatureActor|ProjectileTarget Live knight object; chase follows its position. Nil means no target.
 ---@field healer? CreatureActor Live healer position; Watchers dodge away from it.
+---@field creatures? Creature[] All creatures, used by charmed attacks.
 ---@field resolveMovement? fun(creature: Creature, destination: HumpVector): HumpVector Sweeps voluntary movement against the world.
 ---@field resolveKnockback? fun(creature: Creature, destination: HumpVector): HumpVector, boolean, StructureImpact? Returns corrected position, collision flag and optional surface contact.
 
@@ -61,6 +63,7 @@ local jelly = require("creatures.ochre_jelly")
 ---@field attackCooldownRemaining number
 ---@field watcher? WatcherMovementState Independent orbit and dodge state.
 ---@field pursuitTime? number Ogre's elapsed walk/rest cycle time; frozen during knockback.
+---@field charmedDuration? number Seconds remaining under charm beam control.
 
 ---@class CreatureOptions
 ---@field knockbackResponse? CreatureKnockbackResponse Overrides this creature kind's response to pushes.
@@ -123,7 +126,11 @@ function CreatureSystem:create(monsterId, x, y, options)
     attackBehavior = options.attackBehavior or (attack.type == "ranged" and attacks.projectile or attacks.melee),
     attackCooldownRemaining = 0,
     knockbackResponse = {distanceMultiplier = response.distanceMultiplier, speedMultiplier = response.speedMultiplier},
+    charmedDuration = 0,
   }
+  creature.takeDamage = function(target, amount)
+    self:damage(target, amount, creature.position)
+  end
   self.creatures[#self.creatures + 1] = creature
   return creature
 end
@@ -133,7 +140,7 @@ end
 ---@param distance number Total travel in world pixels, unless blocked.
 ---@param duration number Seconds of movement and attack interruption.
 ---@return boolean
-function CreatureSystem:applyKnockback(creature, direction, distance, duration)
+function CreatureSystem:applyKnockback(creature, direction, distance, duration, superKick)
   if creature.health <= 0 or direction:len() == 0 or duration <= 0 or distance <= 0 then
     return false
   end
@@ -145,7 +152,7 @@ function CreatureSystem:applyKnockback(creature, direction, distance, duration)
   if creature.watcher then creature.watcher.remaining = 0 end
   creature.knockback = {
     direction = direction:normalized(), distance = distance, duration = duration,
-    elapsed = 0, blocked = false,
+    elapsed = 0, blocked = false, superKick = superKick == true,
   }
   creature.velocity = vector(0, 0)
   return true
@@ -161,7 +168,7 @@ local function updateKnockback(creature, dt, context, pendingImpacts)
   local travel = kick.distance * ((2 * after - after * after) - (2 * before - before * before))
   if not kick.blocked and consumed > 0 then
     local destination = creature.position + kick.direction * travel
-    if context.resolveKnockback then
+    if context.resolveKnockback and not kick.superKick then
       local impact
       destination, kick.blocked, impact = context.resolveKnockback(creature, destination)
       if kick.blocked then
@@ -179,7 +186,10 @@ local function updateKnockback(creature, dt, context, pendingImpacts)
     creature.position = destination
   end
   creature.velocity = vector(0, 0)
-  if kick.elapsed >= kick.duration then creature.knockback = nil end
+  if kick.elapsed >= kick.duration then
+    if kick.superKick then pendingImpacts[#pendingImpacts + 1] = creature end
+    creature.knockback = nil
+  end
   return math.max(0, dt - consumed), kick.blocked
 end
 
@@ -187,6 +197,12 @@ end
 ---@param context? CreatureSystemContext References to the current knight and healer; omitted means neither is present.
 function CreatureSystem:update(dt, context)
   context = context or {}
+  for _, creature in ipairs(self.creatures) do
+    if creature.charmedDuration > 0 then
+      creature.charmedDuration = math.max(0, creature.charmedDuration - dt)
+      if creature.charmedDuration == 0 then self:damage(creature, creature.health) end
+    end
+  end
   local canAttack = {}
   local pendingImpacts = {}
   -- Resolve every movement before any attack reads the resulting positions.
@@ -198,7 +214,20 @@ function CreatureSystem:update(dt, context)
     end
     canAttack[creature] = not hitWall and (not wasKnockedBack or activeDt > 1e-9)
     if canAttack[creature] then
-      creature.movementBehavior.update(creature, activeDt, context)
+      if creature.charmedDuration > 0 then
+        local target = attackCommon.charmedTarget(creature, context)
+        if target and activeDt > 0 then
+          local offset = target.position - creature.position
+          local distance = offset:len()
+          creature.velocity = distance > 0
+            and offset:normalized() * math.min(creature.speed, distance / activeDt)
+            or vector(0, 0)
+        else
+          creature.velocity = vector(0, 0)
+        end
+      else
+        creature.movementBehavior.update(creature, activeDt, context)
+      end
       creature.position = creature.position + creature.velocity * activeDt
     end
     creature.animations.idle:update(dt)
@@ -227,6 +256,16 @@ function CreatureSystem:drawCreature(creature)
   local width, height = animation:getDimensions()
   animation:draw(creature.image, creature.position.x, creature.position.y,
     0, creature.scale, creature.scale, width / 2, height / 2)
+  if creature.charmedDuration > 0 then
+    local pulse = 1 + 0.12 * math.sin((animation.timer or 0) * 8)
+    local x, y = creature.position.x, creature.position.y - height * creature.scale / 2
+    love.graphics.setColor(0.75, 0.35, 1, 0.9)
+    love.graphics.setLineWidth(2)
+    love.graphics.circle("line", x, y, 8 * creature.scale * pulse)
+    love.graphics.setColor(0.95, 0.75, 1, 1)
+    love.graphics.arc("line", "open", x, y, 8 * creature.scale * pulse,
+      -math.pi / 2, -math.pi / 2 + math.pi * math.min(1, creature.charmedDuration / 10), 16)
+  end
   love.graphics.pop()
 end
 

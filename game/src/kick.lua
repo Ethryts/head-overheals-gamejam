@@ -18,6 +18,14 @@ Kick.tuning = {
   cooldown = 0.65,
   effectDuration = 0.2,
 }
+Kick.superTuning = {
+  range = 80,
+  arc = math.pi / 2,
+  distance = 900,
+  duration = 0.35,
+  cooldown = 0,
+  effectDuration = 0.2,
+}
 
 function Kick.new()
   return setmetatable({
@@ -38,9 +46,12 @@ end
 ---@return boolean activated
 ---@param fx? FxSystem
 ---@param structures? MapStructure[]
-function Kick:tryActivate(x, y, direction, creatures, projectiles, fx, structures)
-  if self.cooldownRemaining > 0 or direction:len() == 0 then return false end
-  local tuning = Kick.tuning
+function Kick:tryActivate(x, y, direction, creatures, projectiles, fx, superKick, structures)
+  if self.cooldownRemaining > 0 or direction:len() == 0
+    or (superKick and self.effectRemaining > 0) then
+    return false
+  end
+  local tuning = superKick and Kick.superTuning or Kick.tuning
   self.origin = vector(x, y)
   self.direction = direction:normalized()
   self.cooldownRemaining = tuning.cooldown
@@ -54,7 +65,15 @@ function Kick:tryActivate(x, y, direction, creatures, projectiles, fx, structure
   end
   for _, creature in ipairs(creatures:getAll()) do
     if inArc(creature.position) then
-      creatures:applyKnockback(creature, self.direction, tuning.distance, tuning.duration)
+      local knockbackDirection = self.direction
+      if superKick then
+        local spread = (math.random() * 2 - 1) * tuning.arc / 2
+        local cosine, sine = math.cos(spread), math.sin(spread)
+        knockbackDirection = vector(
+          self.direction.x * cosine - self.direction.y * sine,
+          self.direction.x * sine + self.direction.y * cosine)
+      end
+      creatures:applyKnockback(creature, knockbackDirection, tuning.distance, tuning.duration, superKick)
     end
   end
   if projectiles then

@@ -8,6 +8,10 @@ local items = {
   (require("src.items.silver_coin")),
   (require("src.items.golden_heart")),
   (require("src.items.emerald")),
+  (require("src.items.skull")),
+  (require("src.items.death_beam")),
+  (require("src.items.super_kick")),
+  (require("src.items.charm_beam")),
 }
 
 return items

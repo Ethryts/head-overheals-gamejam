@@ -27,6 +27,10 @@ local HealthBar = require("src.health_bar")
 ---@field kickRequested boolean One-frame input, consumed after map collision.
 ---@field lastDrainAmount number Heal charge actually spent this frame; 0 when the beam is inactive or the tank was empty.
 ---@field healBeamLockedOut boolean Fixes when heal meter is at 0 and holding space
+---@field beamMode "heal"|"death"|"charm" Current beam behavior, changed by pickups.
+---@field beamModeDuration number Seconds remaining for the current temporary beam mode.
+---@field charmCharges integer Creatures remaining that the charm beam can affect.
+---@field superKickDuration number Seconds remaining for the temporary super kick mode.
 local Player = {}
 Player.__index = Player
 
@@ -60,6 +64,10 @@ function Player.new(x, y)
   player.kickDirection = vector(1, 0)
   player.kickRequested = false
   player.healBeamLockedOut = false
+  player.beamMode = "heal"
+  player.beamModeDuration = 0
+  player.charmCharges = 0
+  player.superKickDuration = 0
 
   player.input = baton.new({
     controls = {
@@ -117,9 +125,19 @@ end
 function Player.update(player, dt, healResource, mouseBlocked)
   if player.dead then return end
 
+  if player.beamModeDuration > 0 then
+    player.beamModeDuration = math.max(0, player.beamModeDuration - dt)
+    if player.beamModeDuration == 0 then
+      if player.beamMode == "charm" then player.charmCharges = 0 end
+      player.beamMode = "heal"
+    end
+  end
+  player.superKickDuration = math.max(0, player.superKickDuration - dt)
+
   player.input:update()
   player.kick:update(dt)
   player.kickRequested = player.input:pressed("kick")
+    or (player.superKickDuration > 0 and player.input:down("kick"))
 
   local dx, dy = player.input:get("move")
 	local aimX, aimY = player.input:get("aim")
@@ -149,25 +167,28 @@ function Player.update(player, dt, healResource, mouseBlocked)
 	local playerPositionVector = vector(player.x, player.y)
 	local wantsHealing = player.input:down("healBeam") or mouseHealing
 
-  if wantsHealing and healResource:isEmpty() then
+  if player.beamMode == "heal" and wantsHealing and healResource:isEmpty() then
     player.healBeamLockedOut = true
   elseif not wantsHealing then
     player.healBeamLockedOut = false
   end
 
-  local isHealing = wantsHealing and not player.healBeamLockedOut and not healResource:isEmpty()
+  local canUseBeam = player.beamMode ~= "heal"
+    or (not player.healBeamLockedOut and not healResource:isEmpty())
+  local isHealing = wantsHealing and canUseBeam
 
 	if isHealing and directionVector ~= nil then
 		if not player.currentBeam then
-			player.currentBeam = Beam:new(playerPositionVector, directionVector)
+			player.currentBeam = Beam:new(playerPositionVector, directionVector, player.beamMode)
 			player.allBeams[#player.allBeams + 1] = player.currentBeam
 		end
+    player.currentBeam.mode = player.beamMode
 	elseif player.currentBeam and isHealing == false then
 		player.currentBeam:startRelease()
 		player.currentBeam = nil
 	end
   player.lastDrainAmount = 0
-  if player.currentBeam then
+  if player.currentBeam and player.currentBeam.mode == "heal" then
     player.lastDrainAmount = healResource:spend(player.stats.healSpeed * dt)
   end
 
@@ -187,7 +208,7 @@ function Player.update(player, dt, healResource, mouseBlocked)
   player.animation:update(dt)
   for i = #player.allBeams, 1, -1 do
     local beam = player.allBeams[i]
-    beam:update(dt, playerPositionVector, directionVector)
+    beam:update(dt, playerPositionVector, directionVector, player.beamMode)
     if not beam.isVisible then
       beam:destroy()
       table.remove(player.allBeams, i)
@@ -204,7 +225,8 @@ end
 function Player.resolveKick(player, creatures, projectiles, fx, structures)
   if not player.kickRequested then return false end
   player.kickRequested = false
-  return player.kick:tryActivate(player.x, player.y, player.kickDirection, creatures, projectiles, fx, structures)
+  return player.kick:tryActivate(player.x, player.y, player.kickDirection, creatures, projectiles, fx,
+    player.superKickDuration > 0, structures)
 end
 
 function Player.resume(player)

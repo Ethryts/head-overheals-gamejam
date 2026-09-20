@@ -11,6 +11,7 @@
 ---@field radius? number Defaults to 4 world pixels.
 ---@field lifespan? number Defaults to 3 seconds.
 ---@field owner? Creature
+---@field target? ProjectileTarget
 
 ---@class Projectile
 ---@field position HumpVector
@@ -22,6 +23,7 @@
 
 ---@class ProjectileContext
 ---@field knight? ProjectileTarget
+---@field creatures? Creature[]
 ---@field fx? FxSystem
 ---@field traceWorld? fun(origin: HumpVector, destination: HumpVector, radius: number): number? Earliest blocking fraction in [0, 1].
 
@@ -44,6 +46,7 @@ function ProjectileSystem:spawn(options)
     position = options.position:clone(), velocity = options.direction:normalized() * speed,
     damage = options.damage or 1, radius = options.radius or 4,
     lifespan = lifespan, owner = options.owner,
+    target = options.target,
   }
   assert(projectile.radius >= 0, "Projectile radius must be nonnegative")
   self.projectiles[#self.projectiles + 1] = projectile
@@ -74,12 +77,20 @@ function ProjectileSystem:update(dt, context)
     local travelTime = math.min(dt, shot.lifespan)
     local destination = shot.position + shot.velocity * travelTime
     local wall = context.traceWorld and context.traceWorld(shot.position, destination, shot.radius)
-    local knight, target = context.knight, nil
-    if knight and not knight.dead and not knight.overhealed then
-      target = traceKnight(shot.position, destination, knight.position, 16 + shot.radius)
+    local targetActor, target = shot.target, nil
+    if targetActor then
+      if targetActor.health > 0 then
+        target = traceKnight(shot.position, destination, targetActor.position, 16 + shot.radius)
+      end
+    else
+      local knight = context.knight
+      targetActor = knight
+      if knight and not knight.dead and not knight.overhealed then
+        target = traceKnight(shot.position, destination, knight.position, 16 + shot.radius)
+      end
     end
     if target and (not wall or target < wall) then
-      knight:takeDamage(shot.damage)
+      targetActor:takeDamage(shot.damage)
     end
     local impact = wall and target and math.min(wall, target) or wall or target
     if impact and context.fx then

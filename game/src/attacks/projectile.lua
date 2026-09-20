@@ -10,6 +10,7 @@ function projectile.update(creature, dt, context, canAttack)
   local shot = context.projectiles:spawn({
     position = creature.position, direction = target.position - creature.position,
     damage = creature.attack.damage, owner = creature,
+    target = target,
     speed = tuning.speed, radius = tuning.radius, lifespan = tuning.lifespan,
   })
   if shot then creature.attackCooldownRemaining = creature.attack.cooldown end

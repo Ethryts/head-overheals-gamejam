@@ -6,12 +6,14 @@ local Beam = {}
 Beam.__index = Beam
 
 ---@class Beam
+---@field mode "heal"|"death" Beam effect applied to targets it overlaps.
 ---@field impact? {position: HumpVector, angle: number} First world contact, with direction back along the beam.
 ---@field impactCooldown? number Seconds until the next contact burst.
-function Beam:new(bottomLeft, direction)
+function Beam:new(bottomLeft, direction, mode)
 	local beam = {
 		bottomLeft = bottomLeft,
 		direction = direction,
+		mode = mode or "heal",
 
 		length = 0,
 		maxLength = 200,
@@ -97,7 +99,7 @@ function Beam:releaseBeam(dt)
 	end
 end
 
-function Beam:update(dt, newPosition, direction)
+function Beam:update(dt, newPosition, direction, mode)
 	if not self.isVisible then return end
 	if not self.isActive then
 		self:releaseBeam(dt)
@@ -108,6 +110,7 @@ function Beam:update(dt, newPosition, direction)
 	Gamestate.soundEffectsSystem:playSoundEffect("HealingPassive", false)
 
 	self.bottomLeft = newPosition
+	if mode then self.mode = mode end
 
 	if direction then
 		self.direction = direction

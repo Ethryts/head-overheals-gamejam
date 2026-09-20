@@ -26,6 +26,7 @@ end
 
 function Visual:update(beam, dt)
   self.time = self.time + dt
+  self.beamMode = beam.mode
   self.tipX = nil
   if not beam.isVisible or beam.length <= 0 then return end
   local path = beam.points
@@ -75,6 +76,8 @@ end
 
 function Visual:draw()
   if not self.tipX then return end
+  local deathBeam = self.beamMode == "death"
+  local charmBeam = self.beamMode == "charm"
   if not self.mesh then self.mesh = love.graphics.newMesh(self.vertices, "strip", "dynamic") end
   if self.dirty then self.mesh:setVertices(self.vertices); self.dirty = false end
   love.graphics.push("all")
@@ -83,13 +86,21 @@ function Visual:draw()
   love.graphics.setLineStyle("rough")
   love.graphics.setLineJoin("bevel")
   love.graphics.setLineWidth(2)
-  love.graphics.setColor(0.55,1,0.8,self.strength)
+  local centerColor = deathBeam and {1, 0.35, 0.35}
+    or charmBeam and {0.8, 0.45, 1} or {0.55, 1, 0.8}
+  local crackColor = deathBeam and {0.95, 0.08, 0.12}
+    or charmBeam and {0.55, 0.1, 1} or {0.15, 0.95, 0.6}
+  local secondaryColor = deathBeam and {1, 0.7, 0.2}
+    or charmBeam and {1, 0.65, 1} or {0.85, 1, 0.6}
+  local sparkleColor = deathBeam and {1, 0.9, 0.75}
+    or charmBeam and {1, 0.85, 1} or {0.9, 1, 0.85}
+  love.graphics.setColor(centerColor[1],centerColor[2],centerColor[3],self.strength)
   love.graphics.line(self.center)
-  love.graphics.setColor(0.15,0.95,0.6,0.9*self.strength)
+  love.graphics.setColor(crackColor[1],crackColor[2],crackColor[3],0.9*self.strength)
   love.graphics.line(self.cracks[1])
-  love.graphics.setColor(0.85,1,0.6,self.strength)
+  love.graphics.setColor(secondaryColor[1],secondaryColor[2],secondaryColor[3],self.strength)
   love.graphics.line(self.cracks[2])
-  love.graphics.setColor(0.9,1,0.85,self.strength)
+  love.graphics.setColor(sparkleColor[1],sparkleColor[2],sparkleColor[3],self.strength)
   for _, sparkle in ipairs(self.sparkles) do
     if sparkle.visible then
       local x,y = math.floor(sparkle.x/2+0.5)*2, math.floor(sparkle.y/2+0.5)*2

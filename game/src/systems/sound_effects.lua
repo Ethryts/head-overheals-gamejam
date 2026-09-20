@@ -21,6 +21,9 @@ function SoundEffectsSystem:new()
 		{ name = "HealingPassive", path = "assets/audio/sfx/healing-passive.wav", source = nil },
 		{ name = "SlimeDeath", path = "assets/audio/sfx/slimed-out.mp3", source = nil },
 		{ name = "EyeballDeath", path = "assets/audio/sfx/eyeball-death.mp3", source = nil },
+		{ name = "GeneralDeath", path = "assets/audio/sfx/general-death.mp3", source = nil },
+		{ name = "Swing", path = "assets/audio/sfx/swing.mp3", source = nil },
+		{ name = "Kick", path = "assets/audio/sfx/kick.mp3", source = nil },
 	}
 
 	self:loadAllEffects()

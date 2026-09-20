@@ -58,3 +58,4 @@
 ---@field frames? string Anim8 frame range; defaults to "1-1" for static icons.
 ---@field frameDuration? number Defaults to 0.2 seconds; frames are 16x16.
 ---@field onCollect fun(pickup: Pickup, context: PickupContext) Effect owned by the item.
+---@field soundEffectName? string Optional sound effect to play on collection; defaults to "Pickup".

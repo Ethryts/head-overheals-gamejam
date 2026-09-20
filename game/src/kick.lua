@@ -1,4 +1,5 @@
 local vector = require("lib.hump.vector")
+local Gamestate = require("gamestate.deps").Gamestate
 
 ---@class Kick
 ---@field cooldownRemaining number
@@ -45,6 +46,7 @@ function Kick:tryActivate(x, y, direction, creatures)
     local distance = offset:len()
     local dot = offset.x * self.direction.x + offset.y * self.direction.y
     if distance <= tuning.range and (distance == 0 or dot / distance >= threshold - 1e-9) then
+			Gamestate.soundEffectsSystem:playSoundEffect("Kick", false)
       creatures:applyKnockback(creature, self.direction, tuning.distance, tuning.duration)
     end
   end

@@ -187,9 +187,10 @@ function CreatureSystem:damage(creature, amount)
 				Gamestate.soundEffectsSystem:playSoundEffect("MonsterDeath")
 				if creature.kind == 'death_slime' or creature.kind == 'ochre_jelly' then
 					Gamestate.soundEffectsSystem:playSoundEffect("SlimeDeath", true)
-				end
-				if creature.kind == 'bloodshot_eye' then
+				elseif creature.kind == 'bloodshot_eye' then
 					Gamestate.soundEffectsSystem:playSoundEffect("EyeballDeath", true)
+				else 
+					Gamestate.soundEffectsSystem:playSoundEffect("GeneralDeath", true)
 				end
         table.remove(self.creatures, i)
         break

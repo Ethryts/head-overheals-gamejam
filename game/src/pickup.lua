@@ -1,3 +1,4 @@
+local Gamestate = require("gamestate.deps").Gamestate
 local HC = require("lib.HC")
 local anim8 = require("lib.anim8")
 
@@ -54,6 +55,7 @@ function Pickup:collect(context)
   if self.removed then return false end
   self:destroy()
   self.item.onCollect(self, context)
+	Gamestate.soundEffectsSystem:playSoundEffect(self.item.soundEffectName, true)
   return true
 end
 

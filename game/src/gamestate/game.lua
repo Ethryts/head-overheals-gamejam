@@ -2,6 +2,23 @@ local Gamestate = require("gamestate.deps").Gamestate
 local UI = require("gamestate.ui")
 local CreatureSystem = require("systems.creature")
 local MapSystem = require("systems.map")
+---@class GameContext
+---@field player? Player
+---@field knight? Knight
+---@field healer? CreatureActor Optional vector-based healer target for creature behaviors.
+
+---@class GameResult
+---@field title? string
+---@field message? string
+
+---@class GameState: GameContext Fields are initialized by enter().
+---@field player Player
+---@field knight Knight
+---@field map MapSystem
+---@field creatures CreatureSystem
+---@field pickups Pickups
+---@field spawner Spawner
+---@field timer number Seconds since the game started.
 local game = {}
 local Player = require("src.player")
 local HC = require("lib.HC")
@@ -39,7 +56,12 @@ function game:resume(previous)
   -- Resuming the game from pause
 end
 
+---@param dt number Elapsed seconds.
 function game:update(dt)
+  game.timer = (game.timer or 0) + dt
+
+  self.spawner.interval = math.max(0.5, 2.5 - game.timer / 30) -- gradually increase spawn rate over time
+
   UI.begin(self.ui)
   if self.ui:Button("Pause", UI.width - 144, 20, 120, 40).hit then
     return Gamestate.push(require("gamestate.pause"))
@@ -92,6 +114,7 @@ function game:leave()
   self.map:destroy()
 end
 
+---@param result GameResult
 function game:finish(result)
   return Gamestate.switch(require("gamestate.endscreen"), result)
 end

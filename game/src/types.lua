@@ -1,11 +1,12 @@
 ---@meta
--- Editor declarations for the subset of vendored APIs used by CreatureSystem.
+-- Editor declarations for the subset of vendored APIs used by the game.
 -- This file is not required at runtime.
 
 ---@class HumpVector
 ---@operator add(HumpVector): HumpVector
 ---@operator sub(HumpVector): HumpVector
 ---@operator mul(number): HumpVector
+---@operator div(number): HumpVector
 ---@field x number
 ---@field y number
 ---@field clone fun(self: HumpVector): HumpVector
@@ -26,3 +27,14 @@
 ---@field pause fun(self: Anim8Animation)
 ---@field resume fun(self: Anim8Animation)
 ---@field gotoFrame fun(self: Anim8Animation, frame: integer)
+
+---@class BatonInput
+---@field update fun(self: BatonInput)
+---@field get fun(self: BatonInput, control: string): number, number? Second value is present for paired controls.
+
+---@class HCShape
+---@field isPickup? boolean
+---@field move fun(self: HCShape, dx: number, dy: number)
+---@field moveTo fun(self: HCShape, x: number, y: number)
+---@field center fun(self: HCShape): number, number
+---@field collidesWith fun(self: HCShape, other: HCShape): boolean, number, number

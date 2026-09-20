@@ -2,6 +2,8 @@ local Gamestate = require("gamestate.deps").Gamestate
 local UI = require("gamestate.ui")
 local endscreen = {}
 
+---@param previous GameState
+---@param result? GameResult
 function endscreen:enter(previous, result)
     self.ui = UI.new()
     self.result = result or {}

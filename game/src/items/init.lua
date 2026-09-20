@@ -11,6 +11,7 @@ local items = {
   (require("src.items.skull")),
   (require("src.items.death_beam")),
   (require("src.items.super_kick")),
+  (require("src.items.charm_beam")),
 }
 
 return items

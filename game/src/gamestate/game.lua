@@ -108,6 +108,12 @@ function game:update(dt)
           self.creatures:damage(creature, self.player.stats.healSpeed * dt, beam.bottomLeft)
         end
       end
+    elseif beam.isActive and beam.mode == "charm" then
+        for _, creature in ipairs(self.creatures:getAll()) do
+          if beam:containsPoint(creature.position, 6 * creature.scale) then
+            if creature.charmedDuration <= 0 then creature.charmedDuration = 10 end
+          end
+        end
     end
   end
   local dx, dy = self.player.x - oldX, self.player.y - oldY
@@ -137,6 +143,7 @@ function game:update(dt)
     knight = self.knight,
     projectiles = self.projectiles,
     fx = self.fx,
+    creatures = self.creatures:getAll(),
     healer = self.healer,
     resolveKnockback = function(creature, destination)
       return self.map:resolveKnockback(creature.position, destination, 6 * creature.scale)
@@ -146,6 +153,7 @@ function game:update(dt)
   self.projectiles:update(dt, {
     fx = self.fx,
     knight = self.knight,
+    creatures = self.creatures:getAll(),
     traceWorld = function(origin, destination, radius)
       return self.map:traceProjectile(origin, destination, radius)
     end,

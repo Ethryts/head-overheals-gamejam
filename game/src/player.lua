@@ -27,7 +27,7 @@ local HealthBar = require("src.health_bar")
 ---@field kickRequested boolean One-frame input, consumed after map collision.
 ---@field lastDrainAmount number Heal charge actually spent this frame; 0 when the beam is inactive or the tank was empty.
 ---@field healBeamLockedOut boolean Fixes when heal meter is at 0 and holding space
----@field beamMode "heal"|"death" Current beam behavior, changed by timed pickups.
+---@field beamMode "heal"|"death"|"charm" Current beam behavior, changed by timed pickups.
 ---@field beamModeDuration number Seconds remaining for the current temporary beam mode.
 ---@field superKickDuration number Seconds remaining for the temporary super kick mode.
 local Player = {}
@@ -168,7 +168,7 @@ function Player.update(player, dt, healResource, mouseBlocked)
     player.healBeamLockedOut = false
   end
 
-  local canUseBeam = player.beamMode == "death"
+  local canUseBeam = player.beamMode ~= "heal"
     or (not player.healBeamLockedOut and not healResource:isEmpty())
   local isHealing = wantsHealing and canUseBeam
 

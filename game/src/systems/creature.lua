@@ -3,6 +3,7 @@ local animations = require("systems.monster_animations")
 local Gamestate = require("gamestate.deps").Gamestate
 local behavior = require("behavior")
 local attacks = require("attacks")
+local attackCommon = require("attacks.common")
 
 ---@class CreatureActor
 ---@field position HumpVector Current position in the same game coordinates as creatures.
@@ -12,6 +13,7 @@ local attacks = require("attacks")
 ---@field projectiles? ProjectileSystem Ranged attacks spawn into this system.
 ---@field knight? CreatureActor|ProjectileTarget Live knight object; chase follows its position. Nil means no target.
 ---@field healer? CreatureActor Live healer object, available to behaviors; idle/chase do not target it.
+---@field creatures? Creature[] All creatures, used by charmed attacks.
 ---@field resolveKnockback? fun(creature: Creature, destination: HumpVector): HumpVector, boolean, StructureImpact? Returns corrected position, collision flag and optional surface contact.
 
 ---@class CreatureKnockback
@@ -49,6 +51,7 @@ local attacks = require("attacks")
 ---@field attackBehavior CreatureAttackBehavior Shared attack module; state stays on the creature.
 ---@field knockback? CreatureKnockback Overrides movement and interrupts attacks.
 ---@field attackCooldownRemaining number
+---@field charmedDuration? number Seconds remaining under charm beam control.
 
 ---@class CreatureOptions
 ---@field attackBehavior? CreatureAttackBehavior Defaults to attacks.projectile for ranged attacks, otherwise attacks.melee.
@@ -98,7 +101,11 @@ function CreatureSystem:create(monsterId, x, y, options)
     attack = attack,
     attackBehavior = options.attackBehavior or (attack.type == "ranged" and attacks.projectile or attacks.melee),
     attackCooldownRemaining = 0,
+    charmedDuration = 0,
   }
+  creature.takeDamage = function(target, amount)
+    self:damage(target, amount, creature.position)
+  end
   self.creatures[#self.creatures + 1] = creature
   return creature
 end
@@ -160,6 +167,12 @@ end
 ---@param context? CreatureSystemContext References to the current knight and healer; omitted means neither is present.
 function CreatureSystem:update(dt, context)
   context = context or {}
+  for _, creature in ipairs(self.creatures) do
+    if creature.charmedDuration and creature.charmedDuration > 0 then
+      creature.charmedDuration = math.max(0, creature.charmedDuration - dt)
+      if creature.charmedDuration == 0 then self:damage(creature, creature.health) end
+    end
+  end
   local canAttack = {}
   local pendingKills = {}
   -- Resolve every movement before any attack reads the resulting positions.
@@ -168,7 +181,22 @@ function CreatureSystem:update(dt, context)
     local activeDt = wasKnockedBack and updateKnockback(creature, dt, context, pendingKills) or dt
     canAttack[creature] = not wasKnockedBack or activeDt > 1e-9
     if canAttack[creature] then
-      creature.movementBehavior.update(creature, activeDt, context)
+      if creature.charmedDuration and creature.charmedDuration > 0 then
+        local target = attackCommon.charmedTarget(creature, context)
+        if target and activeDt > 0 then
+          local offset = target.position - creature.position
+          local distance = offset:len()
+          if distance > 0 then
+            creature.velocity = offset:normalized() * math.min(creature.speed, distance / activeDt)
+          else
+            creature.velocity = vector(0, 0)
+          end
+        else
+          creature.velocity = vector(0, 0)
+        end
+      else
+        creature.movementBehavior.update(creature, activeDt, context)
+      end
       creature.position = creature.position + creature.velocity * activeDt
     end
     creature.animations.idle:update(dt)
@@ -197,6 +225,17 @@ function CreatureSystem:drawCreature(creature)
   local width, height = animation:getDimensions()
   animation:draw(creature.image, creature.position.x, creature.position.y,
     0, creature.scale, creature.scale, width / 2, height / 2)
+  if creature.charmedDuration and creature.charmedDuration > 0 then
+    local pulse = 1 + 0.12 * math.sin((animation.timer or 0) * 8)
+    love.graphics.setColor(0.75, 0.35, 1, 0.9)
+    love.graphics.setLineWidth(2)
+    love.graphics.circle("line", creature.position.x, creature.position.y - height * creature.scale / 2,
+      8 * creature.scale * pulse)
+    love.graphics.setColor(0.95, 0.75, 1, 1)
+    love.graphics.arc("line", "open", creature.position.x, creature.position.y - height * creature.scale / 2,
+      8 * creature.scale * pulse, -math.pi / 2,
+      -math.pi / 2 + math.pi * math.min(1, creature.charmedDuration / 10), 16)
+  end
   love.graphics.pop()
 end
 

@@ -5,14 +5,18 @@ local viewport = require("src.viewport")
 local Gamestate = require("gamestate.deps").Gamestate
 local MusicSystem = require("systems.music")
 local music
+local SoundEffectsSystem = require("systems.sound_effects")
+local soundEffects
 local debugState = require("gamestate.debug")
 local debugHud = require("debug.hud")
 
 function love.load()
 		music = MusicSystem:new()
+		soundEffects = SoundEffectsSystem:new()
     viewport.init(project.width, project.height)
     viewport.resize(love.graphics.getDimensions())
 		Gamestate.musicSystem = music
+		Gamestate.soundEffectsSystem = soundEffects
     Gamestate.switch(require("gamestate.menu"))
     print("[jam] ready")
 end

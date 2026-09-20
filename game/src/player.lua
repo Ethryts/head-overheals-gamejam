@@ -1,6 +1,7 @@
 local baton = require("lib.baton")
 local vector = require("lib.hump.vector")
 local PlayerAnimation = require("src.player_animation")
+local Gamestate = require("gamestate.deps").Gamestate
 local Beam = require("src.beam")
 
 ---@class Player
@@ -11,6 +12,8 @@ local Beam = require("src.beam")
 ---@field animation PlayerAnimation
 ---@field input BatonInput
 ---@field shape? HCShape Assigned by the game when collision is enabled.
+---@field allBeams Beam[]
+---@field currentBeam? Beam
 local Player = {}
 Player.__index = Player
 
@@ -97,12 +100,13 @@ function Player.update(player, dt)
   local moveX = dx * player.speed * dt
   local moveY = dy * player.speed * dt
 
+	if moveX ~= 0 and moveY ~= 0 then
+		Gamestate.soundEffectsSystem:playWithLowPass("Step")
+		love.audio.setPosition(player.x, player.y, 0)
+	end
+
   player.x = player.x + moveX
   player.y = player.y + moveY
-
-	if aimX ~= 0 or aimY ~= 0 then
-		player.aimDirection = { x = aimX, y = aimY }
-	end
 
   if player.shape then
     player.shape:move(moveX, moveY)

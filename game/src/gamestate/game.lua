@@ -76,8 +76,12 @@ function game:update(dt)
   self.knight:update(dt, self.creatures, game.player)
 
   if self.knight.dead then
+		Gamestate.soundEffectsSystem:stopAllSoundEffects()
+		Gamestate.soundEffectsSystem:playSoundEffect("Death")
     return self:finish({ title = "You lost", message = "The knight has fallen." })
   elseif self.knight.overhealed then
+		Gamestate.soundEffectsSystem:stopAllSoundEffects()
+		Gamestate.soundEffectsSystem:playSoundEffect("HeadOverhealed")
     return self:finish({ title = "Overhealed", message = "The knight's head exploded." })
   end
 

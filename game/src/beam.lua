@@ -1,4 +1,5 @@
 local vector = require("lib.hump.vector")
+local Gamestate = require("gamestate.deps").Gamestate
 
 local Beam = {}
 Beam.__index = Beam
@@ -28,6 +29,8 @@ function Beam:new(bottomLeft, direction)
 		isActive = true,
 		isVisible = true,
 	}
+
+	Gamestate.soundEffectsSystem:playSoundEffect("HealingStart", true)
 
 	setmetatable(beam, Beam)
 
@@ -74,6 +77,7 @@ function Beam:update(dt, newPosition, direction)
 		self:releaseBeam(dt)
 		return
 	end
+	Gamestate.soundEffectsSystem:playSoundEffect("HealingPassive", false)
 
 	self.bottomLeft = newPosition
 
@@ -219,6 +223,9 @@ function Beam:bezier(p0, p1, p2, t)
 end
 
 function Beam:startRelease()
+	Gamestate.soundEffectsSystem:playSoundEffect("HealingEnd", true)
+	Gamestate.soundEffectsSystem:stopSoundEffect("HealingPassive", true)
+
 	self.isActive = false
 end
 

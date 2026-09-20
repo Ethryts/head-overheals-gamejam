@@ -147,6 +147,13 @@ Player.update(player, 0.01, resource)
 assert(player.kickRequested and player.kickDirection.y == -1)
 Player.update(player, 0.01, resource)
 assert(not player.kickRequested, "Held right click never repeats a kick")
+player.superKickDuration = 10
+Player.update(player, 0.01, resource)
+assert(player.kickRequested, "Held right click repeats during Super Kick")
+Player.resolveKick(player, {getAll=function() return {} end})
+Player.update(player, 0.01, resource)
+assert(player.kickRequested, "Held right click continues repeating during Super Kick")
+player.superKickDuration = 0
 left, right = false, false
 Player.update(player, 0.01, resource)
 assert(not player.currentBeam)

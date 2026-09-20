@@ -26,11 +26,12 @@ function MouseControls.update(state, aimX, aimY, blocked)
   end
   state.healing = left and valid and (state.healing or pressedLeft)
   local kick = valid and pressedRight
+  local kickHeld = valid and right
   state.x, state.y, state.left, state.right = x, y, left, right
   if state.aiming and valid then
     aimX, aimY = x - project.width/2, y - project.height/2
   end
-  return aimX, aimY, state.healing, kick
+  return aimX, aimY, state.healing, kick, kickHeld
 end
 
 function MouseControls.resume(state)

@@ -141,9 +141,11 @@ function Player.update(player, dt, healResource, mouseBlocked)
 
   local dx, dy = player.input:get("move")
 	local aimX, aimY = player.input:get("aim")
-  local mouseHealing, mouseKick
-  aimX, aimY, mouseHealing, mouseKick = MouseControls.update(player.mouse, aimX, aimY, mouseBlocked)
+  local mouseHealing, mouseKick, mouseKickHeld
+  aimX, aimY, mouseHealing, mouseKick, mouseKickHeld =
+    MouseControls.update(player.mouse, aimX, aimY, mouseBlocked)
   player.kickRequested = player.kickRequested or mouseKick
+    or (player.superKickDuration > 0 and mouseKickHeld)
   if aimX ~= 0 or aimY ~= 0 then
     player.kickDirection = vector(aimX, aimY):normalized()
   elseif dx ~= 0 or dy ~= 0 then

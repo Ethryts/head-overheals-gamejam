@@ -4,6 +4,7 @@ local UI = require("gamestate.ui")
 local menu = {}
 
 function menu:enter()
+		Gamestate.musicSystem:receiveHealthUpdate(100)
     self.ui = UI.new()
 end
 

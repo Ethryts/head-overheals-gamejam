@@ -23,6 +23,9 @@ love = {
       return {getViewport=function() return x,y,w,h end}
     end,
     push=function() end,pop=function() end,setColor=function() end,
+    polygon=function() end,rectangle=function() end,
+    newFont=function() return {setFilter=function() end, getWidth=function(_, text) return #text*10 end} end,
+    setFont=function() end,print=function() end,
     draw=function(...) draws[#draws+1]={...} end,
   },
 }
@@ -81,7 +84,7 @@ pickups:create(hasteItem,player.x,player.y)
 pickups:checkCollected(player,knight)
 assert(player.stats.speed==220 and knight.stats.speed==140)
 local oldX=player.x
-Player.update(player,0.5)
+Player.update(player,0.5,require('src.heal_resource').new())
 assert(player.x==oldX+110,'Player movement uses current stats')
 knight.state='moving'
 knight.destination=knight.position + require('lib.hump.vector')(1000,0)
@@ -101,7 +104,9 @@ for _,item in ipairs(pickups.items) do
   assert(math.abs(item.x-player.x)<=960*1.25/2)
   assert(math.abs(item.y-player.y)<=540*1.25/2)
 end
-pickups:draw(); assert(#draws>=4)
+local visible, beforeDraw = 0, #draws
+for _, item in ipairs(pickups.items) do if item:isVisible() then visible = visible+1 end end
+pickups:draw(); assert(#draws == beforeDraw+visible)
 assert(draws[#draws][8]==8 and draws[#draws][9]==8,'Icons draw from their centers')
 pickups.batchSize=0
 pickups:update(3)
@@ -113,11 +118,54 @@ local game = {score=0}
 local coin = pickups:create(require('src.items.gold_coin'),player.x,player.y)
 pickups:checkCollected(player,knight,game)
 assert(game.score==1 and coin.removed and #pickups.items==0)
+local labelCount = #pickups.labels
+local label = pickups.labels[labelCount]
+assert(label.text == coin.item.name and label.x == coin.x, 'Collection names use the item and world position')
+pickups:drawLabels(); pickups:drawLabels()
+assert(label.age == 0, 'Drawing collection names does not advance time')
+assert(not pickups:onCollect(coin, {player=player, knight=knight, game=game}))
+assert(#pickups.labels == labelCount, 'Duplicate collection cannot add another name')
 assert(not coin:collect({player=player,knight=knight,game=game}))
 assert(game.score==1, 'The same coin must not award score twice')
 pickups:create(require('src.items.gold_coin'),player.x,player.y)
 pickups:checkCollected(player,knight,game)
 assert(game.score==2, 'Coins accumulate score on the supplied game')
+pickups:update(1.5)
+assert(#pickups.labels == 0, 'Collection names expire promptly')
 pickups:destroy(); HC.remove(player.shape)
 assert(shapeCount()==0)
+local Pickup = require('src.pickup')
+local visual = Pickup.new(bootsItem, 100, 200, 6, 2)
+visual:draw()
+local firstY = draws[#draws][4]
+visual:update(0.2); visual:draw()
+assert(draws[#draws][4] ~= firstY, 'Pickup hovers as time advances')
+local x, y = visual.shape:center()
+assert(x == 100 and y == 200 and visual.y == 200, 'Hover never moves collection collision')
+local age, lifetime = visual.age, visual.lifetime
+visual:draw(); visual:draw()
+assert(visual.age == age and visual.lifetime == lifetime, 'Drawing is safe while paused')
+local function transitions(start)
+  local count, previous = 0, nil
+  for i = 0, 999 do
+    visual.lifetime = start-i/1000
+    local visible = visual:isVisible()
+    if previous ~= nil and visible ~= previous then count = count+1 end
+    previous = visible
+  end
+  return count
+end
+assert(transitions(6.1) == 0, 'No blinking before the final five seconds')
+assert(transitions(1) > transitions(5), 'Blinking speeds up toward expiry')
+for i = 1, 500 do
+  visual.lifetime = 5-i/100
+  if not visual:isVisible() then break end
+end
+assert(not visual:isVisible())
+local count = #draws
+visual:draw(); assert(#draws == count, 'Off phase hides the icon')
+assert(visual:collect({player=player}), 'Blinking pickups remain collectible')
+visual = Pickup.new(bootsItem, 0, 0, 0.1, 2)
+visual:update(0.2)
+assert(visual.removed and not visual:isVisible() and shapeCount() == 0)
 print('Pickup checks passed: weights, effects, movement, caching, timing, limits, bounds and collision cleanup')

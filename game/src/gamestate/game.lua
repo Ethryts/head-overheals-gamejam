@@ -266,6 +266,11 @@ end
 
 function game:drawUI()
   if self.demo and self.demo.hideHud then return end
+  -- Keep collection names out of the low-resolution world canvas and its shader.
+  love.graphics.push("all")
+  love.graphics.translate(UI.width / 2 - self.player.x, UI.height / 2 - self.player.y)
+  self.pickups:drawLabels()
+  love.graphics.pop()
   UI.draw(self.ui)
   self.hud:draw(self)
   UI.healBar(self.healResource)

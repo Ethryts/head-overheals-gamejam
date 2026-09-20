@@ -1,6 +1,8 @@
 local project = require("project")
 local Pickup = require("src.pickup")
 local items = require("src.items")
+local Skin = require("ui.skin")
+local labelLifetime = 1.4
 
 ---@class PickupsOptions
 ---@field intervalMin? number Minimum seconds between batches; defaults to 1.
@@ -20,6 +22,7 @@ local items = require("src.items")
 ---@field maxItems integer
 ---@field lifetime number
 ---@field scale number
+---@field labels {text: string, x: number, y: number, age: number}[] Temporary collection names.
 local Pickups = {}
 Pickups.__index = Pickups
 
@@ -33,7 +36,7 @@ end
 function Pickups.new(player, options)
   options = options or {}
   local self = setmetatable({
-    player = player, items = {},
+    player = player, items = {}, labels = {},
     intervalMin = options.intervalMin or 1,
     intervalMax = options.intervalMax or 3,
     batchSize = options.batchSize or 2,
@@ -114,6 +117,11 @@ end
 
 ---@param dt number Elapsed seconds.
 function Pickups:update(dt)
+  for i = #self.labels, 1, -1 do
+    local label = self.labels[i]
+    label.age = label.age + dt
+    if label.age >= labelLifetime then table.remove(self.labels, i) end
+  end
   for i = #self.items, 1, -1 do
     local item = self.items[i]
     item:update(dt)
@@ -131,7 +139,17 @@ end
 ---@param item Pickup
 ---@param context PickupContext
 function Pickups:onCollect(item, context)
-  return item:collect(context)
+  if not item:collect(context) then return false end
+  -- Separate names when collecting several items in the same spot.
+  local y = item.y-24
+  for _, label in ipairs(self.labels) do
+    if math.abs(label.x-item.x) < 100 and math.abs(label.y-(item.y-24)) < 100 then
+      y = math.min(y, label.y-20)
+    end
+  end
+  if #self.labels >= 16 then table.remove(self.labels, 1) end
+  self.labels[#self.labels+1] = {text = item.item.name, x = item.x, y = y, age = 0}
+  return true
 end
 
 function Pickups:draw()
@@ -141,9 +159,28 @@ function Pickups:draw()
   love.graphics.pop()
 end
 
+-- Called in the UI pass with the world camera translation, outside post-processing.
+function Pickups:drawLabels()
+  if #self.labels == 0 then return end
+  love.graphics.push("all")
+  local font = Skin.font(20)
+  love.graphics.setFont(font)
+  for _, label in ipairs(self.labels) do
+    local alpha = math.min(1, (labelLifetime-label.age)/0.5)
+    local x = math.floor((label.x-font:getWidth(label.text)/2)/2)*2
+    local y = math.floor((label.y-label.age*14)/2)*2
+    love.graphics.setColor(0.04, 0.05, 0.06, alpha)
+    love.graphics.print(label.text, x+2, y+2)
+    love.graphics.setColor(1, 0.95, 0.8, alpha)
+    love.graphics.print(label.text, x, y)
+  end
+  love.graphics.pop()
+end
+
 function Pickups:destroy()
   for _, item in ipairs(self.items) do item:destroy() end
   self.items = {}
+  self.labels = {}
 end
 
 return Pickups

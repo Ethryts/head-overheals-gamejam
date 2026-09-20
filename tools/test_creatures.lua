@@ -185,7 +185,7 @@ package.preload["src.player"] = function()
 end
 package.preload["src.pickups"] = function()
   return {new = function() return {
-    spawn = noop, checkCollected = noop, draw = noop, update = noop, destroy = noop,
+    spawn = noop, checkCollected = noop, draw = noop, drawLabels = noop, update = noop, destroy = noop,
   } end}
 end
 package.preload["systems.music"] = function()

@@ -138,7 +138,8 @@ assert(miss.cooldownRemaining == Kick.tuning.cooldown, "A miss also consumes coo
 
 local function travel(steps)
   local system = CreatureSystem.new()
-  local creature = system:create("death_slime", 0, 0, {speed = 40, movementBehavior = behavior.chase})
+  local creature = system:create("death_slime", 0, 0, {speed = 40, movementBehavior = behavior.chase,
+    knockbackResponse = {distanceMultiplier = 1, speedMultiplier = 1}})
   system:applyKnockback(creature, vector(1, 0), 180, 0.25)
   for _, dt in ipairs(steps) do system:update(dt, {knight = {position = vector(-1000, 0)}}) end
   return creature
@@ -163,10 +164,10 @@ interruptions:update(0, context)
 interruptions:update(0.1, context)
 assert(hits == 0 and blocked.knockback.blocked)
 interruptions:update(0.15, context)
-assert(hits == 0 and resolutions == 1 and not blocked.knockback,
-  "Pillar impact stops travel but preserves the full attack interruption")
+assert(hits == 0 and resolutions == 1 and #interruptions:getAll() == 0,
+  "Pillar impact removes the creature")
 interruptions:update(0.01, context)
-assert(hits == 1 and blocked.health == 1, "Normal attacks resume without kick damage")
+assert(hits == 0 and blocked.health == 0, "Dead creatures cannot resume attacking")
 
 -- Controlled pillars in real streamed chunks and HC geometry.
 local map = MapSystem.new()

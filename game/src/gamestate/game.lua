@@ -44,6 +44,7 @@ local HealResource = require("src.heal_resource")
 
 function game:enter(previous)
   self.score = 0
+  self.timer = 0
   self.fx = FxSystem.new()
   self.worldCanvas = WorldCanvas.new()
   self.healingEmitter = nil
@@ -68,7 +69,7 @@ function game:enter(previous)
   self.knight:setPatrolRadius(600)
 
   self.spawner = Spawner.new(self.creatures, {
-    interval = 2.5,
+    difficulty = require("src.difficulty"),
     speed = 60,
     scale = 2,
   })
@@ -84,7 +85,6 @@ end
 ---@param dt number Elapsed seconds.
 function game:update(dt)
   game.timer = (game.timer or 0) + dt
-  self.spawner.interval = math.max(0.5, 2.5 - game.timer / 30) -- gradually increase spawn rate over time
 
   UI.begin(self.ui)
   local oldX, oldY = self.player.x, self.player.y

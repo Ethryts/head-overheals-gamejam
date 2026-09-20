@@ -3,6 +3,7 @@ local animations = require("systems.monster_animations")
 local Gamestate = require("gamestate.deps").Gamestate
 local behavior = require("behavior")
 local attacks = require("attacks")
+local ogre = require("creatures.brawny_ogre")
 
 ---@class CreatureActor
 ---@field position HumpVector Current position in the same game coordinates as creatures.
@@ -20,6 +21,10 @@ local attacks = require("attacks")
 ---@field duration number
 ---@field elapsed number
 ---@field blocked boolean
+
+---@class CreatureKnockbackResponse
+---@field distanceMultiplier number Multiplies the incoming push distance; zero makes the creature immovable.
+---@field speedMultiplier number Multiplies the incoming push speed; must be positive.
 
 ---@class CreatureMovementBehavior
 ---@field update fun(creature: Creature, dt: number, context: CreatureSystemContext) Sets velocity; CreatureSystem applies movement.
@@ -48,9 +53,12 @@ local attacks = require("attacks")
 ---@field movementBehavior CreatureMovementBehavior Shared movement module.
 ---@field attackBehavior CreatureAttackBehavior Shared attack module; state stays on the creature.
 ---@field knockback? CreatureKnockback Overrides movement and interrupts attacks.
+---@field knockbackResponse CreatureKnockbackResponse Creature weight response, separate from active knockback state.
 ---@field attackCooldownRemaining number
+---@field pursuitTime? number Ogre's elapsed walk/rest cycle time; frozen during knockback.
 
 ---@class CreatureOptions
+---@field knockbackResponse? CreatureKnockbackResponse Overrides this creature kind's response to pushes.
 ---@field attackBehavior? CreatureAttackBehavior Defaults to attacks.projectile for ranged attacks, otherwise attacks.melee.
 ---@field health? number Defaults to 1.
 ---@field speed? number Defaults to 0.
@@ -68,6 +76,9 @@ CreatureSystem.__index = CreatureSystem
 local DEFAULT_ATTACK = { type = "melee", damage = 1, cooldown = 1, range = 24 }
 local EYE_ATTACK = { type = "ranged", damage = 1, cooldown = 1.5, range = 300,
   projectile = { speed = 240, radius = 4, lifespan = 3 } }
+local NORMAL_KNOCKBACK = {distanceMultiplier = 1, speedMultiplier = 1}
+local SLIME_KNOCKBACK = {distanceMultiplier = 0.85, speedMultiplier = 0.9}
+local EYE_KNOCKBACK = {distanceMultiplier = 1.2, speedMultiplier = 1.15}
 
 ---@return CreatureSystem
 ---@param fx? FxSystem
@@ -82,22 +93,28 @@ end
 ---@return Creature
 function CreatureSystem:create(monsterId, x, y, options)
   options = options or {}
-  local image, clips = animations.loadMonster(monsterId, options.frameDuration)
-  local attack = options.attack or (monsterId == "bloodshot_eye" and EYE_ATTACK or DEFAULT_ATTACK)
+  local defaults = monsterId == "brawny_ogre" and ogre or {}
+  local image, clips = animations.loadMonster(monsterId, options.frameDuration or defaults.frameDuration)
+  local attack = options.attack or defaults.attack or (monsterId == "bloodshot_eye" and EYE_ATTACK or DEFAULT_ATTACK)
+  local response = options.knockbackResponse or defaults.knockbackResponse
+    or ((monsterId == "death_slime" or monsterId == "ochre_jelly") and SLIME_KNOCKBACK)
+    or (monsterId == "bloodshot_eye" and EYE_KNOCKBACK) or NORMAL_KNOCKBACK
+  assert(response.distanceMultiplier >= 0 and response.speedMultiplier > 0, "Invalid creature knockback response")
   ---@type Creature
   local creature = {
     kind = monsterId,
-    health = options.health or 1,
-    speed = options.speed or 0,
+    health = options.health or defaults.health or 1,
+    speed = options.speed or defaults.speed or 0,
     position = vector(x, y),
     velocity = vector(0, 0),
     image = image,
     animations = clips,
-    scale = options.scale or 1,
-    movementBehavior = options.movementBehavior or (attack.type == "ranged" and behavior.ranged or behavior.idle),
+    scale = options.scale or defaults.scale or 1,
+    movementBehavior = options.movementBehavior or defaults.movementBehavior or (attack.type == "ranged" and behavior.ranged or behavior.idle),
     attack = attack,
     attackBehavior = options.attackBehavior or (attack.type == "ranged" and attacks.projectile or attacks.melee),
     attackCooldownRemaining = 0,
+    knockbackResponse = {distanceMultiplier = response.distanceMultiplier, speedMultiplier = response.speedMultiplier},
   }
   self.creatures[#self.creatures + 1] = creature
   return creature
@@ -112,6 +129,11 @@ function CreatureSystem:applyKnockback(creature, direction, distance, duration)
   if creature.health <= 0 or direction:len() == 0 or duration <= 0 or distance <= 0 then
     return false
   end
+  local response = creature.knockbackResponse
+  if response.distanceMultiplier == 0 then return false end
+  -- Preserve the decelerating push curve while tuning travel and speed independently.
+  distance = distance * response.distanceMultiplier
+  duration = duration * response.distanceMultiplier / response.speedMultiplier
   creature.knockback = {
     direction = direction:normalized(), distance = distance, duration = duration,
     elapsed = 0, blocked = false,
@@ -149,7 +171,7 @@ local function updateKnockback(creature, dt, context, pendingKills)
   end
   creature.velocity = vector(0, 0)
   if kick.elapsed >= kick.duration then creature.knockback = nil end
-  return math.max(0, dt - consumed)
+  return math.max(0, dt - consumed), kick.blocked
 end
 
 ---@param dt number Elapsed seconds.
@@ -161,8 +183,11 @@ function CreatureSystem:update(dt, context)
   -- Resolve every movement before any attack reads the resulting positions.
   for _, creature in ipairs(self.creatures) do
     local wasKnockedBack = creature.knockback ~= nil
-    local activeDt = wasKnockedBack and updateKnockback(creature, dt, context, pendingKills) or dt
-    canAttack[creature] = not wasKnockedBack or activeDt > 1e-9
+    local activeDt, hitWall = dt, false
+    if wasKnockedBack then
+      activeDt, hitWall = updateKnockback(creature, dt, context, pendingKills)
+    end
+    canAttack[creature] = not hitWall and (not wasKnockedBack or activeDt > 1e-9)
     if canAttack[creature] then
       creature.movementBehavior.update(creature, activeDt, context)
       creature.position = creature.position + creature.velocity * activeDt

@@ -130,7 +130,7 @@ eye=creatures:create('bloodshot_eye',300,0,{movementBehavior=behavior.ranged})
 creatures:applyKnockback(eye,vector(1,0),30,0.25)
 creatures:update(0.2,context); assert(#shots.projectiles==0, 'Knockback interrupts firing')
 creatures:update(0.1,context); assert(#shots.projectiles==0, 'Out of range after knockback')
-knight.position=vector(30,0); creatures:update(0.01,context); assert(#shots.projectiles==1)
+knight.position=eye.position-vector(300,0); creatures:update(0.01,context); assert(#shots.projectiles==1)
 
 -- Movement behaviors stay independently selectable, regardless of attack type.
 local actor={position=vector(400,0),velocity=vector(0,0),speed=60,
@@ -174,7 +174,7 @@ near(first.attackCooldownRemaining,0.4)
 near(second.attackCooldownRemaining,1)
 assert(knight.health==99, 'Shared attack modules keep independent cooldowns')
 ordered:applyKnockback(first,vector(1,0),1,0.5)
-ordered:update(0.5,{knight=knight})
+ordered:update(first.knockback.duration,{knight=knight})
 near(first.attackCooldownRemaining,0)
 assert(knight.health==99, 'Cooldown advances but exact knockback completion does not attack')
 ordered:update(0.01,{knight=knight}); assert(knight.health==98)

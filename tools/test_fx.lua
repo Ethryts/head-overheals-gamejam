@@ -34,6 +34,7 @@ love = {
     end}
   end},
   graphics = setmetatable({
+    newMesh = function() return {setVertices = noop, release = noop} end,
     newCanvas = function() return {setFilter = noop, release = noop} end,
     newImage = function(path)
       local file = assert(io.open("game/" .. path, "rb"))
@@ -195,9 +196,11 @@ game.creatures:damage(enemy,1,game.knight.position); assert(recorded.sparks)
 local Player=require('src.player')
 local overlap=Player.doesBeamOverlapWithPoint
 Player.doesBeamOverlapWithPoint=function() return true end
+game.healResource:add(100); keys={space=true,right=true}
 love.update(0.1); assert(game.healingEmitter and game.healingEmitter.active)
 local emitter=game.healingEmitter
 Player.doesBeamOverlapWithPoint=function() return false end
+keys={}
 love.update(0.01); assert(not emitter.active and not game.healingEmitter)
 Player.doesBeamOverlapWithPoint=overlap
 local p=game.fx.particles[1]

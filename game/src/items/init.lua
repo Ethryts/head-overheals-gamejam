@@ -9,6 +9,8 @@ local items = {
   (require("src.items.golden_heart")),
   (require("src.items.emerald")),
   (require("src.items.skull")),
+  (require("src.items.death_beam")),
+  (require("src.items.super_kick")),
 }
 
 return items

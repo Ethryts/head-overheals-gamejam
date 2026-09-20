@@ -100,6 +100,15 @@ function game:update(dt)
   for _, beam in ipairs(self.player.allBeams or {}) do
     beam:clipAgainstWorld(traceBeam, vector(self.player.x, self.player.y))
     beam:updateImpact(dt, self.fx)
+    if beam.isActive and beam.mode == "death" then
+      local creatures = self.creatures:getAll()
+      for i = #creatures, 1, -1 do
+        local creature = creatures[i]
+        if beam:containsPoint(creature.position, 6 * creature.scale) then
+          self.creatures:damage(creature, self.player.stats.healSpeed * dt, beam.bottomLeft)
+        end
+      end
+    end
   end
   local dx, dy = self.player.x - oldX, self.player.y - oldY
   self.dustDistance = self.dustDistance + math.sqrt(dx * dx + dy * dy)

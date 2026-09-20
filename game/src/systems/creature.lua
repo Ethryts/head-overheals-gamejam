@@ -107,14 +107,15 @@ end
 ---@param direction HumpVector
 ---@param distance number Total travel in world pixels, unless blocked.
 ---@param duration number Seconds of movement and attack interruption.
+---@param superKick? boolean Launch without stopping at world obstacles, then remove the creature.
 ---@return boolean
-function CreatureSystem:applyKnockback(creature, direction, distance, duration)
+function CreatureSystem:applyKnockback(creature, direction, distance, duration, superKick)
   if creature.health <= 0 or direction:len() == 0 or duration <= 0 or distance <= 0 then
     return false
   end
   creature.knockback = {
     direction = direction:normalized(), distance = distance, duration = duration,
-    elapsed = 0, blocked = false,
+    elapsed = 0, blocked = false, superKick = superKick == true,
   }
   creature.velocity = vector(0, 0)
   return true
@@ -130,7 +131,7 @@ local function updateKnockback(creature, dt, context, pendingKills)
   local travel = kick.distance * ((2 * after - after * after) - (2 * before - before * before))
   if not kick.blocked and consumed > 0 then
     local destination = creature.position + kick.direction * travel
-    if context.resolveKnockback then
+    if context.resolveKnockback and not kick.superKick then
       local impact
       destination, kick.blocked, impact = context.resolveKnockback(creature, destination)
       if kick.blocked then
@@ -148,7 +149,10 @@ local function updateKnockback(creature, dt, context, pendingKills)
     creature.position = destination
   end
   creature.velocity = vector(0, 0)
-  if kick.elapsed >= kick.duration then creature.knockback = nil end
+  if kick.elapsed >= kick.duration then
+    if kick.superKick then pendingKills[#pendingKills + 1] = creature end
+    creature.knockback = nil
+  end
   return math.max(0, dt - consumed)
 end
 

@@ -18,6 +18,14 @@ Kick.tuning = {
   cooldown = 0.65,
   effectDuration = 0.2,
 }
+Kick.superTuning = {
+  range = 80,
+  arc = math.pi / 2,
+  distance = 1600,
+  duration = 0.45,
+  cooldown = 0,
+  effectDuration = 0.2,
+}
 
 function Kick.new()
   return setmetatable({
@@ -37,9 +45,12 @@ end
 ---@param projectiles? ProjectileSystem Shots in the kick arc are destroyed on activation.
 ---@return boolean activated
 ---@param fx? FxSystem
-function Kick:tryActivate(x, y, direction, creatures, projectiles, fx)
-  if self.cooldownRemaining > 0 or direction:len() == 0 then return false end
-  local tuning = Kick.tuning
+function Kick:tryActivate(x, y, direction, creatures, projectiles, fx, superKick)
+  if self.cooldownRemaining > 0 or direction:len() == 0
+    or (superKick and self.effectRemaining > 0) then
+    return false
+  end
+  local tuning = superKick and Kick.superTuning or Kick.tuning
   self.origin = vector(x, y)
   self.direction = direction:normalized()
   self.cooldownRemaining = tuning.cooldown
@@ -53,7 +64,7 @@ function Kick:tryActivate(x, y, direction, creatures, projectiles, fx)
   end
   for _, creature in ipairs(creatures:getAll()) do
     if inArc(creature.position) then
-      creatures:applyKnockback(creature, self.direction, tuning.distance, tuning.duration)
+      creatures:applyKnockback(creature, self.direction, tuning.distance, tuning.duration, superKick)
     end
   end
   if projectiles then

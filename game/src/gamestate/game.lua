@@ -30,6 +30,7 @@ local vector = require("lib.hump.vector")
 ---@field pickups Pickups
 ---@field spawner Spawner
 ---@field timer number Seconds since the game started.
+---@field hud GameHud
 ---@field healResource HealResource
 ---@field score integer Coins collected during the current run.
 local game = {}
@@ -38,6 +39,7 @@ local HC = require("lib.HC")
 local Pickups = require("src.pickups")
 local Knight = require("src.knight")
 local Spawner = require("systems.spawner")
+local Hud = require("ui.hud")
 local HealResource = require("src.heal_resource")
 
 function game:enter(previous)
@@ -71,6 +73,7 @@ function game:enter(previous)
     scale = 2,
   })
   self.projectiles = ProjectileSystem.new()
+  self.hud = Hud.new(self)
 end
 
 function game:resume(previous)
@@ -154,6 +157,7 @@ function game:update(dt)
     self.healingEmitter = nil
   end
   self.fx:update(dt)
+  self.hud:update(dt, self)
 
   if self.knight.dead then
     Gamestate.soundEffectsSystem:stopAllSoundEffects()
@@ -200,10 +204,10 @@ end
 function game:draw()
   self:drawWorld()
   UI.draw(self.ui)
-  love.graphics.print("Score: " .. self.score, 24, 20)
-  self.player.kick:drawStatus(24, 48)
-  UI.footer("Esc: pause     F2: preview end screen, F3: debug, F4: debug HUD")
+  self.hud:draw(self)
+  self.player.kick:drawStatus(24, 384)
   UI.healBar(self.healResource)
+  UI.footer("Esc: pause     F3: debug     F4: debug HUD")
 end
 
 function game:leave()

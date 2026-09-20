@@ -4,7 +4,7 @@ unpack = unpack or table.unpack
 package.path = "game/?.lua;game/?/init.lua;game/src/?.lua;game/src/?/init.lua;" .. package.path
 
 local function noop() end
-local font = {
+local font = {setFilter = function() end,
   getWidth = function(_, text) return #text * 9 end,
   getHeight = function() return 18 end,
 }
@@ -27,9 +27,10 @@ love = {
       local header = file:read(24)
       file:close()
       local width, height = read32(header, 17), read32(header, 21)
-      assert(width == 64 and height == 16, path)
+      assert((width == 64 and height == 16) or (width == 152 and height == 112), path)
       imageLoads = imageLoads + 1
       return {
+        isUi = width == 152 and height == 112,
         getWidth = function() return width end,
         getHeight = function() return height end,
         setFilter = function(_, min, mag)
@@ -37,11 +38,14 @@ love = {
         end,
       }
     end,
-    newQuad = function(x, y, w, h)
-      assert(w == 16 and h == 16 and y == 0 and x >= 0 and x <= 48)
+    newQuad = function(x, y, w, h, sw, sh)
+      assert((w == 16 and h == 16 and y == 0 and x >= 0 and x <= 48)
+        or (sw == 152 and sh == 112 and x + w <= sw and y + h <= sh))
       return {getViewport = function() return x, y, w, h end}
     end,
-    draw = function(...) draws[#draws + 1] = {...} end,
+    draw = function(image, ...)
+      if not image.isUi then draws[#draws + 1] = {image, ...} end
+    end,
     newFont = function() return font end,
     getFont = function() return font end,
     getDimensions = function() return windowWidth, windowHeight end,
@@ -170,6 +174,7 @@ end
 package.preload["src.player"] = function()
   return {new = function(x, y)
     return {x = x, y = y, kick = {drawStatus = noop},
+      stats = {speed = 200, maxHealth = 100, healSpeed = 10},
       animation = {getFeetY = function(_, py) return py + 32 end}}
   end, update = noop, draw = noop, resolveKick = noop, resume = noop}
 end
@@ -189,6 +194,7 @@ end
 package.preload["src.knight"] = function()
   return {OVERHEAL_LIMIT = 200, new = function(x, y) return {
     position = vector(x, y), update = noop, draw = noop, setPatrolRadius = noop,
+    stats = {speed = 60, maxHealth = 100, healSpeed = 10},
     animation = {getFeetY = function(_, py) return py + 32 end},
     GetHealthPercentage = function() return 100 end,
   } end}

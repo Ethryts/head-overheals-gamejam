@@ -24,7 +24,7 @@ end
 
 function hud.draw(state)
   if not hud.visible then return end
-  font = font or love.graphics.newFont(14)
+  font = font or require("ui.skin").font(16)
   local lines = {}
   for _, row in ipairs(hud.rows) do
     local text = row(state)

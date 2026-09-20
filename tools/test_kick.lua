@@ -11,7 +11,7 @@ local joystick = {
   getGamepadAxis = function(_, axis) return axes[axis] or 0 end,
   isGamepadDown = function() return false end,
 }
-local font = {getWidth = function(_, s) return #s * 9 end, getHeight = function() return 18 end}
+local font = {setFilter = function() end, getWidth = function(_, s) return #s * 9 end, getHeight = function() return 18 end}
 local function read32(data, offset)
   local a, b, c, d = data:byte(offset, offset + 3)
   return ((a * 256 + b) * 256 + c) * 256 + d

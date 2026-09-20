@@ -1,6 +1,13 @@
 local deps = require("gamestate.deps")
 local project = require("project")
 local viewport = require("src.viewport")
+local Skin = require("ui.skin")
+local defaultTheme = require("lib.suit.theme")
+local theme = setmetatable({}, {__index = defaultTheme})
+function theme.Button(text, opt, x, y, w, h)
+    Skin.panel(x, y, w, h, opt.state ~= "normal" and 0.6 or 0)
+    defaultTheme.Label(text, opt, x, y, w, h)
+end
 local HealthBar = require("src.health_bar")
 
 local ui = {
@@ -15,15 +22,15 @@ local healBarWidget
 function ui.new()
     if not fonts then
         fonts = {
-            title = love.graphics.newFont(36),
-            body = love.graphics.newFont(18),
+            title = Skin.font(48),
+            body = Skin.font(24),
         }
     end
     if not healBarWidget then
       healBarWidget = HealthBar.new({ width = 200, height = 16, offsetY = 0 })
     end
     -- Each visit starts with a fresh SUIT instance and an empty draw queue.
-    return deps.suit.new()
+    return deps.suit.new(theme)
 end
 
 function ui.begin(instance)

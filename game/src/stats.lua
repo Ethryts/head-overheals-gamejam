@@ -1,4 +1,5 @@
 ---@class ActorStats
+---@field healSpeed number Healing rate per second.
 ---@field speed number Movement speed in world pixels per second.
 ---@field maxHealth number Max health; can be overhealed to 2x
 local Stats = {}
